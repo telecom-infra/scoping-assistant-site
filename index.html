@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATCO Scoping Assistant — Project Research v1.11.22 (beta)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f6f8;color:#1f2937}
+  .top{background:#18324a;color:#fff;padding:18px 26px}
+  .top h1{margin:0;font-size:22px;font-weight:600}.top p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+  .wrap{max-width:1200px;margin:22px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid #d9dee5;border-radius:8px;padding:18px;margin-bottom:16px;box-shadow:0 1px 2px #0000000a}
+  .title{font-size:16px;font-weight:600;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr 2fr 150px;gap:12px}
+  label{font-size:12px;color:#59636f;display:block;margin-bottom:5px}
+  input,textarea,select{width:100%;border:1px solid #cbd3dc;border-radius:5px;padding:10px;font:inherit;background:#fff}
+  button{border:0;border-radius:5px;padding:10px 13px;background:#245b83;color:#fff;cursor:pointer;font-weight:600}
+  button.secondary{background:#e8edf2;color:#243447}
+  .buttonLink{display:inline-block;border-radius:5px;padding:10px 13px;background:#245b83;color:#fff;text-decoration:none;font-weight:600;font-size:13px;line-height:normal}
+  .buttonLink.secondary{background:#e8edf2;color:#243447}
+  .mapOpenLink{font-size:11px;color:#245b83;text-decoration:none;font-weight:600;padding:5px 8px;border:1px solid #bfd0dc;border-radius:5px;background:#fff}
+  .mapOpenLink:hover{background:#f2f6fa;text-decoration:underline}
+  .buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .status{margin-top:10px;font-size:13px;color:#59636f;min-height:18px}
+  .layout{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+  #map{height:180px;border-radius:6px;border:1px solid #d9dee5}
+  .mapFrame{height:430px;border-radius:6px;border:1px solid #d9dee5;overflow:hidden;background:#f8fafc}
+  .mapFallback{height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;padding:20px;text-align:center}
+  .secondaryMap{height:180px;margin-top:10px;border:1px solid #d9dee5;border-radius:6px}
+  .imageryMapWrap{margin-top:14px}
+  .mapPanel{margin-top:14px;border-top:1px solid #e5e7eb;padding-top:12px}
+  .mapPanel:first-of-type{margin-top:10px;border-top:0;padding-top:0}
+  .mapPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .mapPanelTitle{font-size:13px;font-weight:600;color:#334155}
+  .mapPanelActions{display:flex;align-items:center;gap:8px}
+  .mapPanelBody{display:block}
+  .mapPanelBody.collapsed{display:none}
+  .collapseBtn{padding:6px 9px;font-size:11px;background:#eef2f5;color:#334155}
+  #wsdotMap{height:320px;border-radius:6px;border:1px solid #d9dee5;background:#eef2f5;overflow:hidden}
+  .mapLegendNote{font-size:11px;color:#6b7280;margin-top:7px}
+  .imageryMapHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+  .imageryMapTitle{font-size:13px;font-weight:600;color:#334155}
+  .imageryMapStatus{font-size:11px;color:#6b7280}
+  #imageryMap{height:320px;border-radius:6px;border:1px solid #d9dee5;background:#eef2f5;overflow:hidden}
+  .note{font-size:12px;color:#59636f;margin-top:8px}
+
+  .kv{display:grid;grid-template-columns:180px 1fr;gap:7px 14px;font-size:13px}
+  .kv div:nth-child(odd){color:#64748b}
+  .pill{display:inline-block;background:#edf4f8;border:1px solid #cbdde8;border-radius:20px;padding:5px 9px;font-size:12px;margin:2px}
+  .warn{background:#fff7e6;border:1px solid #f0d49a;padding:10px;border-radius:5px;font-size:13px}
+  .ok{background:#edf8f0;border:1px solid #b9dec2;padding:10px;border-radius:5px;font-size:13px}
+  .check{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.check label{padding:9px;background:#f7f8fa;border:1px solid #e1e5e9;border-radius:5px;color:#263442}
+  .email{background:#f8fafc;border:1px solid #dce2e8;padding:12px;border-radius:5px;white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px}
+  .small{font-size:11px;color:#6b7280}
+  .betaDisclaimer{font-size:11px;line-height:1.5;color:#6b7280;margin-bottom:16px}
+  .betaDisclaimer strong{color:#374151}
+  .copyRow{display:flex;gap:6px;align-items:center;margin-top:5px}.copyBtn{padding:5px 8px;font-size:11px}.readiness{font-size:13px}.readiness-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.readiness-status{font-weight:600}.ready{color:#25613b}.needs{color:#8a5a00}.readiness-list{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.readiness-item{padding:7px 9px;border-radius:5px;background:#f7f8fa;border:1px solid #e1e5e9}.readiness-item.ok{background:#edf8f0;border-color:#b9dec2}.readiness-item.warn{background:#fff7e6;border-color:#f0d49a}.readiness-item .rlabel{color:#64748b;font-size:11px}.readiness-item .rvalue{font-weight:600;font-size:12px;margin-top:2px}
+  .resource-card{border:1px solid #d9dee5;border-radius:6px;padding:12px;background:#f8fafc}
+  .resource-title{font-weight:600;margin-bottom:8px}
+  .jur-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #e5e7eb}
+  .jur-row:first-of-type{border-top:0}
+  .jur-links{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .link-btn-inline{display:inline-block;padding:6px 9px;border:1px solid #bfd0dc;border-radius:5px;background:#fff;color:#245b83;text-decoration:none;font-size:12px;font-weight:600}
+  .missing-inline{display:inline-block;padding:6px 9px;color:#8a8f98;font-size:12px}
+  .useful-links{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px}.useful-links summary{cursor:pointer;font-size:12px;font-weight:600;color:#475569;user-select:none}.useful-list{display:flex;flex-direction:column;gap:5px;margin-top:7px}.useful-link-inline{display:block;padding:6px 8px;border-radius:4px;background:#fff;border:1px solid #d9dee5;color:#245b83;text-decoration:none;font-size:12px}.useful-link-inline:hover{background:#f2f6fa;text-decoration:underline}.resource-source{margin-top:7px;font-size:10px;color:#7b8794}
+  .transferHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .transferGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .transferItem{display:flex;align-items:center;gap:8px;padding:9px 10px;background:#f7f8fa;border:1px solid #e1e5e9;border-radius:5px;font-size:12px;color:#263442}
+  .transferItem input{width:auto;margin:0}
+  .transferItem.disabled{color:#8a8f98;background:#fafafa}
+  .transferMeta{font-size:11px;color:#64748b;margin-top:8px}
+  .transferStatus{margin-top:10px;min-height:20px;font-size:12px;color:#59636f}
+  .transferStatus.ok{color:#25613b}
+  .transferStatus.warn{color:#8a5a00}
+  .transferPayload{display:none;margin-top:10px}
+  .transferPayload.show{display:block}
+  .transferPayload pre{margin:0;background:#f8fafc;border:1px solid #dce2e8;padding:10px;border-radius:5px;white-space:pre-wrap;word-break:break-word;font-family:Consolas,monospace;font-size:11px;max-height:260px;overflow:auto}
+  .installBtn[disabled]{opacity:.55;cursor:not-allowed}
+  .footer{margin-top:22px;padding:14px 4px 18px;text-align:center;color:#7b8794;font-size:11px}
+  .footer .version{font-weight:600;color:#64748b}
+  .footer a{color:#245b83;text-decoration:none}
+  .footer a:hover{text-decoration:underline}
+  @media(max-width:800px){.jur-row{grid-template-columns:1fr}.jur-links{justify-content:flex-start}}
+  @media(max-width:800px){.grid,.layout{grid-template-columns:1fr}.check{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>ATCO Scoping Assistant</h1>
+  <p>Project research workspace — Google Maps first, RandyMajors backup, OpenStreetMap backup, ArcGIS aerial imagery, WSDOT functional classification, jurisdiction GIS/portal links + useful links, exchange/CLLI cross-reference, coordinator assignment and copy-ready emails.</p>
+</div>
+
+<div class="wrap">
+  <div class="betaDisclaimer">
+    <div><strong>Beta research tool:</strong> Results are based on available reference data and automated location research. Results may be incomplete or outdated. Verify jurisdiction, exchange, engineering, and permitting requirements before submission.</div>
+    <div><strong>Work Disclaimer: This tool is intended to assist with research and scoping only. It does not determine final jurisdiction, permitting requirements, engineering requirements, or other project decisions. Final verification and decisions remain with the permit specialist.</strong></div>
+  </div>
+  <div class="card">
+    <div class="title">1. Start project research</div>
+    <div class="grid">
+      <div><label>Project number</label><input id="project" placeholder="6025181" oninput="researchCompleted=false; updateReadiness(); renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('project')">Copy</button></div></div>
+      <div><label>Project address / location</label><input id="address" placeholder="28816 106th Pl SE, Monroe, WA 98272" oninput="researchCompleted=false; updateAddressHelpers(); updateReadiness(); renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('address')">Copy</button></div><div id="addressHelper" class="small" style="margin-top:5px"></div></div>
+      <div><label>Received date</label><input id="received" type="date"></div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+      <div><label>Alternate project number</label><input id="altProjectNumber" placeholder="Optional" oninput="renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('altProjectNumber')">Copy</button></div></div>
+      <div><label>Client</label><input id="client" value="Ziply" oninput="renderText()"></div>
+      <div><label>Scope of work</label><input id="scope" placeholder="BF MDU" oninput="renderText()"></div>
+    </div>
+    <div class="buttons">
+      <button type="button" onclick="research()">Research project</button>
+      <a id="topGoogleLink" class="buttonLink secondary" href="#" target="_blank" rel="noopener noreferrer">Open Google Maps</a>
+      <a id="topRandyLink" class="buttonLink secondary" href="#" target="_blank" rel="noopener noreferrer">Open RandyMajors</a>
+      <a id="topOSMLink" class="buttonLink secondary" href="#" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+      <button type="button" class="secondary" onclick="clearAll()">New Project / Clear</button>
+    </div>
+    <div id="status" class="status"></div>
+    <div class="small">Google Maps is the primary address lookup. RandyMajors is the boundary/location research backup, and OpenStreetMap is the final fallback. The app also matches the entered locality to the embedded ATCO exchange reference and surfaces matching GIS/portal resources. All reference matches should be verified.</div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="layout">
+      <div class="card">
+        <div class="title">2. Project location</div>
+        <div id="googlePreview" class="mapFrame">
+          <div class="mapFallback">
+            <div>
+              <div style="font-weight:600;font-size:16px;margin-bottom:8px">Google Maps — primary location lookup</div>
+              <div id="googleAddressPreview" style="margin-bottom:14px">Enter an address and click <b>Research project</b>.</div>
+              <div class="buttons" style="justify-content:center;margin-top:0">
+                <a id="googlePreviewLink" class="buttonLink" href="#" target="_blank" rel="noopener noreferrer">Open this address in Google Maps</a>
+              </div>
+              <div class="small" style="margin-top:12px">Google Maps opens the address directly in a new browser tab. Google Maps is not embedded inside the app, so the local preview remains stable.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mapPanel">
+          <div class="mapPanelHeader">
+            <div class="mapPanelTitle">OpenStreetMap — road / street view</div>
+            <div class="mapPanelActions"><a id="roadMapOpenLink" class="mapOpenLink" href="#" target="_blank" rel="noopener noreferrer">Open map in new tab</a><span id="roadMapStatus" class="imageryMapStatus">Waiting for coordinates…</span><button type="button" class="collapseBtn" onclick="toggleMapPanel('roadMapBody', this)">Collapse map</button></div>
+          </div>
+          <div id="roadMapBody" class="mapPanelBody">
+            <div id="map" class="secondaryMap" style="display:none"></div>
+            <div class="note">Road-focused visual research map using coordinates found by the background geocoder. Zoom and pan independently. Use <b>Open map in new tab</b> for a full browser map view.</div>
+          </div>
+        </div>
+
+        <div class="mapPanel">
+          <div class="mapPanelHeader">
+            <div class="mapPanelTitle">ArcGIS World Imagery — aerial / satellite view</div>
+            <div class="mapPanelActions"><a id="imageryMapOpenLink" class="mapOpenLink" href="#" target="_blank" rel="noopener noreferrer">Open map in new tab</a><div id="imageryMapStatus" class="imageryMapStatus">Waiting for coordinates…</div><button type="button" class="collapseBtn" onclick="toggleMapPanel('imageryMapBody', this)">Collapse map</button></div>
+          </div>
+          <div id="imageryMapBody" class="mapPanelBody">
+            <div id="imageryMap"></div>
+            <div class="note">Aerial/satellite imagery from Esri's World Imagery service. It shares the same project coordinates as the road map and can be zoomed and panned independently. Use <b>Open map in new tab</b> for a full browser map view.</div>
+          </div>
+        </div>
+
+        <div class="mapPanel">
+          <div class="mapPanelHeader">
+            <div class="mapPanelTitle">WSDOT Functional Classification</div>
+            <div class="mapPanelActions"><a id="wsdotOpenLink" class="mapOpenLink" href="https://wsdot.wa.gov/data/tools/geoportal/?config=FunctionalClass" target="_blank" rel="noopener noreferrer">Open WSDOT in new tab</a><div id="wsdotMapStatus" class="imageryMapStatus">Available for Washington locations</div><button type="button" class="collapseBtn" onclick="toggleMapPanel('wsdotMapBody', this)">Collapse map</button></div>
+          </div>
+          <div id="wsdotMapBody" class="mapPanelBody">
+            <div class="mapFallback">
+              <a id="wsdotPanelLink" class="buttonLink" href="https://wsdot.wa.gov/data/tools/geoportal/?config=FunctionalClass" target="_blank" rel="noopener noreferrer">WSDOT Functional Classification Map</a>
+            </div>
+          </div>
+        </div>
+        <div class="buttons">
+          <button onclick="openMaps()">Google Maps — primary</button>
+          <button class="secondary" onclick="openStreetView()">Google Street View</button>
+          <button class="secondary" onclick="openRandy()">RandyMajors — backup</button>
+          <button class="secondary" onclick="openOSM()">OpenStreetMap — backup 2</button>
+          <button class="secondary" id="topGISBtn" onclick="openDetectedGIS()">Open detected GIS</button>
+          <button class="secondary" id="topPortalBtn" onclick="openDetectedPortal()">Open permit portal</button>
+          <button class="secondary" onclick="openArcGISImagery()">Open ArcGIS imagery</button>
+          <button class="secondary" onclick="openWSDOTFunctionalClass()">WSDOT Functional Classification</button>
+          <button type="button" class="secondary" onclick="downloadKMZ()">Download KMZ</button>
+          <button type="button" class="secondary" onclick="copyCoordinates()">Copy coordinates</button>
+        </div>
+        <div id="fileActionStatus" class="small" style="margin-top:8px"></div>
+        <div class="coordBox" style="margin-top:10px">
+          <label for="coordDisplay">Project coordinates</label>
+          <div class="coordRow">
+            <input id="coordDisplay" type="text" readonly placeholder="Coordinates will appear after the location is resolved">
+            <button type="button" class="secondary" onclick="copyCoordinates()">Select coordinates</button>
+          </div>
+          <div class="small">Coordinates are always displayed here. The button selects the text so Ctrl+C can be used even when browser clipboard access is blocked.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="title">Location & jurisdiction research</div>
+        <div class="kv" id="locationInfo"></div>
+        <div style="margin-top:14px" id="jurisdictionBox"></div>
+        <div style="margin-top:14px" id="jurisdictionResources"></div>
+        <div style="margin-top:14px">
+          <span class="pill">Human verification required</span>
+          <span class="pill">Do not treat geocoder as permit determination</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card readiness" id="readinessCard">
+      <div class="readiness-head">
+        <div class="title" style="margin-bottom:0">Research status</div>
+        <div id="readinessStatus" class="readiness-status needs">Research not completed</div>
+      </div>
+      <div id="readinessList" class="readiness-list"></div>
+      <div id="missingInfo" class="small" style="margin-top:9px"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">3. Reference data / cross-reference</div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><label>Exchange (auto from locality)</label><input id="exchange" placeholder="Auto-populated from exchange reference" oninput="renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('exchange')">Copy</button></div></div>
+        <div><label>CLLI code</label><input id="clli" placeholder="Auto-populated" oninput="renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('clli')">Copy</button></div></div>
+        <div><label>Engineer (auto from exchange reference)</label><input id="engineer" placeholder="Auto-populated" oninput="renderText()"><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('engineer')">Copy</button></div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+        <div><label>OSP engineering manager</label><input id="exchangeManager" placeholder="Auto-populated" oninput="renderText()"></div>
+        <div><label>Engineering coordinator</label><input id="coordinator" placeholder="Enter if known" oninput="renderText()"></div>
+        <div><label>Confirmed permit jurisdiction</label><select id="selectedJurisdiction" onchange="jurisdictionChanged()"><option value="">Select after verification</option></select><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('selectedJurisdiction')">Copy</button></div></div>
+      </div>
+      <div id="exchangeLookupStatus" class="small" style="margin-top:8px"></div>
+      <div style="margin-top:12px;max-width:420px">
+        <label>Assigned permit coordinator</label>
+        <select id="assignedCoordinator" onchange="saveAssignedCoordinator(); renderText()">
+          <option value="">Select coordinator</option>
+          <option>Eli Hersman</option>
+          <option>Kateryna Buxton</option>
+          <option>Diana Comer</option>
+          <option>Noah Sanchez</option>
+          <option>Johnny Lang</option>
+          <option>Moises Rivera</option>
+          <option>Viviana Rivera</option>
+          <option>Kyle Allen</option>
+          <option>Jason Vieira</option>
+          <option>Pablo Perez</option>
+          <option>Michael Comer</option>
+          <option>Christina Chablet</option>
+          <option>Carlos Perez</option>
+          <option>Mark Robertson</option>
+          <option>Austin Wilsey</option>
+          <option>William Watts</option>
+          <option>Marcus Luna</option>
+          <option>Lamar Washington</option>
+          <option>Dorothy Graham</option>
+          <option>Peter Bawa</option>
+          <option>Quinn Philips</option>
+          <option>Christopher Kowis</option>
+          <option>Charli Bowman</option>
+          <option>Stevie Garrison</option>
+          <option>Hikaru Saito</option>
+          <option>Amber Luna</option>
+        </select><div class="copyRow"><button type="button" class="secondary copyBtn" onclick="copyField('assignedCoordinator')">Copy</button></div>
+      </div>
+      <div class="buttons">
+        <button class="secondary" onclick="loadReferenceCSV()">Load CSV reference data</button>
+      </div>
+      <input id="csvInput" type="file" accept=".csv" style="display:none" onchange="readCSV(this)">
+      <div class="small">The embedded exchange reference is a legacy/test dataset from EXCHANGES.xlsx and is replaceable later. CSV remains available for manual reference-data overrides.</div>
+    </div>
+
+    <div class="card">
+      <div class="title">4. Scoping checklist</div>
+      <div class="check">
+        <label><input type="checkbox"> WP reviewed</label>
+        <label><input type="checkbox"> Address confirmed</label>
+        <label><input type="checkbox"> Jurisdiction confirmed</label>
+        <label><input type="checkbox"> Road classification checked</label>
+        <label><input type="checkbox"> TCP requirement reviewed</label>
+        <label><input type="checkbox"> Ground disturbance reviewed</label>
+        <label><input type="checkbox"> Locates / basemap checked</label>
+        <label><input type="checkbox"> WSDOT checked</label>
+        <label><input type="checkbox"> Multiple jurisdictions checked</label>
+        <label><input type="checkbox"> Easement requirement checked</label>
+        <label><input type="checkbox"> Pole numbers checked</label>
+        <label><input type="checkbox"> Cost estimate checked</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">5. Optional scoper notes</div>
+      <label>Scoper notes for the permit coordinator</label>
+      <textarea id="scoperNotes" rows="6" placeholder="Enter any additional scope, jurisdiction, permit, TCP, or submittal information the coordinator should know..." oninput="renderText()"></textarea>
+      <div style="margin-top:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+          <input id="includeScoperNotes" type="checkbox" onchange="renderText()">
+          Include scoper notes in coordinator handoff email
+        </label>
+      </div>
+      <div class="small" style="margin-top:6px">Scoper notes are optional. They can remain in the Anvil-ready output without being included in the coordinator email.</div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="title">6. Anvil-ready project information</div>
+        <textarea id="anvil" rows="17"></textarea>
+        <div class="buttons"><button onclick="copyText('anvil')">Copy Anvil information</button></div>
+      </div>
+      <div class="card">
+        <div class="title">7. Reply to Kim / PAC</div>
+        <div class="email" id="email"></div>
+        <div class="buttons"><button onclick="copyEmail()">Copy email</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">8. Coordinator handoff email</div>
+      <label for="emailSignature">Email signature</label>
+      <select id="emailSignature" onchange="saveEmailSignature(); renderText()" style="max-width:320px;margin-bottom:10px">
+        <option value="eli">Eli Hersman — TCP Permit Specialist</option>
+        <option value="johnny">Johnny Lang — Project Manager - TCP Permits</option>
+      </select>
+      <div class="small" style="margin-bottom:10px">The selected signature is used in both generated emails.</div>
+      <div class="email" id="handoffEmail"></div>
+      <div class="buttons">
+        <button onclick="copyHandoffEmail()">Copy coordinator email</button>
+      </div>
+      <div class="small" style="margin-top:8px">The selected permit coordinator is inserted into the greeting. Review the email before sending.</div>
+    </div>
+
+    <div class="card">
+      <div class="title">9. Chatter</div>
+      <label for="chatterDeadline">Permit submission deadline</label>
+      <input id="chatterDeadline" type="date" onchange="renderText()" style="max-width:240px">
+      <div style="margin-top:12px">
+        <label>Pre-populated Chatter message</label>
+        <div class="email" id="chatterMessage"></div>
+      </div>
+      <div class="buttons">
+        <button onclick="copyChatter()">Copy Chatter message</button>
+      </div>
+      <div class="small" style="margin-top:8px">Standard permit workflow: 10 calendar days from today. Update the date when a different forecast is required. Recommended @ mentions are the Engineer, Exchange Engineer, and Engineering Coordinator.</div>
+    </div>
+    <div class="card">
+      <div class="transferHeader">
+        <div>
+          <div class="title" style="margin-bottom:4px">10. Anvil transfer</div>
+          <div class="small">Prepare the completed project for the small ATCO browser transfer tool. The transfer tool will populate the selected Anvil fields and then stop for your review.</div>
+        </div>
+        <span class="pill">Human review required</span>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="margin-bottom:7px">Browser transfer tool</label>
+        <div class="buttons" style="margin-top:0">
+          <a class="buttonLink secondary" href="ATCO_Anvil_Transfer_Edge_v0.1.7.zip" download>Download Edge Transfer Tool</a>
+          <a class="buttonLink secondary" href="ATCO_Anvil_Transfer_Chrome_v0.1.7.zip" download>Download Chrome Transfer Tool</a>
+        </div>
+        <div style="margin-top:8px"><a class="buttonLink secondary" href="https://atcotrafficcontrol.anvil.app/" target="_blank" rel="noopener noreferrer" title="Open ATCO Portal in a new tab">Open Anvil</a></div>
+        <div class="transferMeta">The browser transfer tool is intentionally separate from this application. It only transfers selected project fields into Anvil; it does not create or submit the project. Developer install is required for this beta build.</div>
+      </div>
+
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#475569">How does this work?</summary>
+        <div class="small" style="margin-top:8px;line-height:1.55">
+          1. Complete and review the project in the Scoping Assistant.<br>
+          2. Install the small Edge or Chrome transfer extension using the developer-install instructions in its package.<br>
+          3. Choose the fields to transfer in the extension.<br>
+          4. Open Anvil and go to the Create Project page.<br>
+          5. Click <b>Create New Project in Anvil</b> here to hand off the current project data.<br>
+          6. Transfer the selected fields in the extension, review the populated Anvil form, upload files, add anything missing, and then create the project in Anvil.
+        </div>
+      </details>
+
+      <div style="margin-top:14px">
+        <label style="margin-bottom:7px">Available fields to transfer</label>
+        <div class="small" style="margin-bottom:8px">The transfer tool uses the current values in the Scoping Assistant, whether they were auto-detected or manually edited.</div>
+        <div class="transferGrid" id="transferFieldList">
+          <label class="transferItem"><input type="checkbox" data-transfer-field="projectNumber" checked>Project Number</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="altProjectNumber" checked>Alternate Project Number</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="projectAddress" checked>Project Address / Description</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="dateReceived" checked>Date Received</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="customer" checked>Customer</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="scope" checked>Work Type</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="exchange" checked>Exchange</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="clli" disabled>CLLI Code — Not mapped yet</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="engineer" disabled>Engineer — Not mapped yet</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="exchangeManager" disabled>OSP Engineering Manager — Not mapped yet</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="coordinator" disabled>Engineering Coordinator — Not mapped yet</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="selectedJurisdiction" disabled>Confirmed Permit Jurisdiction — Not mapped yet</label>
+          <label class="transferItem disabled"><input type="checkbox" data-transfer-field="assignedCoordinator" disabled>Assigned To — Not mapped yet</label>
+          <label class="transferItem"><input type="checkbox" data-transfer-field="scoperNotes" checked>Notes</label>
+          <label class="transferItem disabled"><input type="checkbox" disabled>Jurisdiction — Coming Soon</label>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="secondary" onclick="setTransferSelection(true)">Select All Available</button>
+        <button type="button" class="secondary" onclick="setTransferSelection(false)">Deselect All</button>
+        <button type="button" onclick="prepareAnvilTransfer()">Create New Project in Anvil</button>
+      </div>
+      <div id="transferStatus" class="transferStatus"></div>
+      <div id="transferPayload" class="transferPayload"><pre id="transferPayloadText"></pre></div>
+    </div>
+  </div>
+  <div class="footer">V1.11.23 (beta) &nbsp;•&nbsp; <a href="mailto:Jason.Vieira@Atcotelecom.com">Jason.Vieira@Atcotelecom.com</a> &nbsp;•&nbsp; ATCO Communications Services, LLC</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map, marker, imageryMap, imageryMarker, wsdotMap, wsdotMarker, wsdotLayer, lat=null, lon=null, displayAddress='', geoData=null, geoSource='', researchCompleted=false;
+const JURISDICTIONS = [{"name":"Anacortes - City","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"https://ci-anacortes-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAW4ei2oTsKTKQxJVsQSqSlAZqvx08Y1oLZ39uGCdVIQeY?e=RcQvqX"}]},{"name":"Arlington - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://arlington.portal.iworq.net/portalhome/arlington","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/s/ATCOPermitTrafficControlPlanDesign/EfTIYV3x7dBJnYfSJ7RC0ycBRU4tu0tQAUEogzlu1EcsqA?e=byFbfX"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBcymzyu3BYTbdRfq1zQBxiAZCw2JwUeUH3aBvkBd5zYJ0?e=wnJKIY"},{"label":"Arlington Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/EhK-R62tAQJClYKntpQ3py8BTHZQ63EeHaUOTgYpzT2Zlg?e=IivHpf"}]},{"name":"Bellevue - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Bellevue I Map","url":"https://cobgis.maps.arcgis.com/apps/webappviewer/index.html?id=e1748172d4f34f1eb3710032a351cd57"},{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/s/ATCOPermitTrafficControlPlanDesign/EfTIYV3x7dBJnYfSJ7RC0ycBRU4tu0tQAUEogzlu1EcsqA?e=byFbfX"},{"label":"Arlington Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/EhK-R62tAQJClYKntpQ3py8BTHZQ63EeHaUOTgYpzT2Zlg?e=IivHpf"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBcymzyu3BYTbdRfq1zQBxiAZCw2JwUeUH3aBvkBd5zYJ0?e=wnJKIY"}]},{"name":"Bellingham - City","gis":"https://www.arcgis.com/apps/webappviewer/index.html?id=f2f8eaa500b04f54948c680bb280129f","portal":"https://permits.cob.org/etrakit/","usefulLinks":[{"label":"Bellingham Payment Portal","url":"https://atcotelecom.sharepoint.com/TCP%20File%20Database/Arianne%20Mommsen/www.cob.org/permits;%20%20https:/permits.cob.org/etrakit"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/s/ATCOPermitTrafficControlPlanDesign/EfTIYV3x7dBJnYfSJ7RC0ycBRU4tu0tQAUEogzlu1EcsqA?e=U1fjkU"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBrtX9H6C7GSbezUCxnYYqFAZGKrm70DcFBKYFhrx5wT1Y?e=HLh3M1"}]},{"name":"Benton - City","gis":"https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=428dcedbce17467b841844e8908bf3e7","portal":"mailto: vvowell@ci.benton-city.wa.us","usefulLinks":[{"label":"Process for TCP WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCWLdOe8oWiQamjAP_eKZyUAXk1WmgDlVU7jxqMmyYVtxA?e=XKQwx7"}]},{"name":"Benton - County","gis":"https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=6c2cc10410ad4009b53d3a7779c96b5e","portal":"mailto:publicworks@co.benton.wa.us","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCL94_ooUYWS7xzKYJqWjjVAfLTwWP3QWFiiORP_Em9ELY?e=8lrBL8"}]},{"name":"Blaine - City","gis":"https://experience.arcgis.com/experience/8f640880f44043daab038966b66c0686#widget_23=active_datasource_id:ff934f4c911c4fea983eebbfecc88704,center:-13629625.55069445%2C6252298.459401601%2C102100,scale:288895.277144,level:11,rotation:0,viewpoint:%7B%22rotation%22%3A0%2C%22scale%22%3A288895.277144%2C%22targetGeometry%22%3A%7B%22spatialReference%22%3A%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D%2C%22x%22%3A-13629625.55069445%2C%22y%22%3A6252298.459401601%7D%7D","portal":"mailto:customerservice@cityofblaine.com","usefulLinks":[{"label":"Payments","url":"https://atcotelecom.sharepoint.com/:w:/s/ATCOPermitTrafficControlPlanDesign/EYwVJ-SJCmhJttZ2TSKBea0BFNKvHFIY2WzWRI55j_E5hw?e=XC4ETq"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDAQnS9YBmTRainoxxunOlUAQd7CimAfa2B0kEETy8cc-4?e=vf9l5N"}]},{"name":"Bothell - City","gis":"https://mybuildingpermit.com/","portal":"","usefulLinks":[{"label":"Snohomish County","url":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default"},{"label":"King County","url":"https://gismaps.kingcounty.gov/iMap/"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD2-KfBSq_wSIR3OsIZ0zXyARc1XAQbubnZv0xIsLo5t4k?e=7bwtqh"}]},{"name":"Brier - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"mailto:pwsuper@ci.brier.wa.us","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAhDS7K88xIQ4e0SC1EuQcrAZtPZj4OsM0AAyCeDluCc0c?e=A1hZ2I"}]},{"name":"Burien - City","gis":"https://www.burienwa.gov/map_library","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Burien Map","url":"https://www.burienwa.gov/map_library"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCtKRtD4quCTLKUEPIZhCkjAYBbkB_q7Sy2LCk5-SlEJM8?e=irP6Hc"}]},{"name":"Burlington - City","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"mailto:rowpermits@burlingtonwa.gov","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAK4lfsiwjqTJK-TfOAMmbxAVnoe1JDr2EDVkdUO0e4SCI?e=7ONyNw"}]},{"name":"Camas - City","gis":"https://gis.clark.wa.gov/mapsonline/?site=AdminBoundaries","portal":"mailto:permits@cityofcamas.us","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCxDU7_mtEGQbM_DlP9bgtrARMetD7AKnuPgGm4XBRpMIk?e=B6Iai8"}]},{"name":"Centrailia - City","gis":"","portal":"mailto:PublicWorksPermits@cityofcentralia.com","usefulLinks":[]},{"name":"Chehalis - City","gis":"https://gis.lewiscountywa.gov/webmap/","portal":"https://ci-chehalis-wa.smartgovcommunity.com/ApplicationPublic/ApplicationHome","usefulLinks":[{"label":"Payment portal","url":"https://ci-chehalis-wa.smartgovcommunity.com/Public/Home"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDMo8eiCqoDQb5Pfe-OCNnwAeJ6m08IV_moLhNMqNLjUB4?e=y2wvZr"}]},{"name":"Chelan - County","gis":"https://pacs.co.chelan.wa.us/mapSearch/","portal":"mailto:Jim.Peterson@Co.Chelan.wa.us","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgB7oG48FKP8RpG8vI3EMiCvAVRFQmGQMSzunl-9RFdHy_Y?e=00LhxY"}]},{"name":"College Place - City","gis":"https://wallawallacountygis-wwcgis.hub.arcgis.com/apps/de8021d071d14ad187d1c1e9dea296fd/explore","portal":"mailto:planbuild@cpwa.us","usefulLinks":[{"label":"Process for TCP, WP, & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCf9dU_VjhDTrZCyP7W9QLmAVIAFZjKz0v74w2XZsQiqk4?e=AmLtGN"}]},{"name":"Colville - City","gis":"https://www.arcgis.com/apps/mapviewer/index.html?url=https://services2.arcgis.com/ucbvac2Huf0fbL3D/ArcGIS/rest/services/ColvilleCityLimits/FeatureServer&source=sd","portal":"mailto:hcrockett@colville.wa.us","usefulLinks":[{"label":"Payments","url":"https://atcotrafficcontrol.anvil.app/www.colville.wa.us"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAjl92SklNPRoaV9dRkQTddAcDO8-3-g9TaUAI-u6q9CVs?e=5sF9CG"}]},{"name":"Concrete - Other","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"mailto:deputyclerk@concretewa.gov","usefulLinks":[{"label":"Process for TCP, WP, and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCR3d1l_eBkQKmyeSV0sRNxAepacxuguSDtXogaz-ZpnHo?e=zI25WD"}]},{"name":"Coupeville - Other","gis":"https://icgeomap.islandcountywa.gov/Html5Viewer/Index.html?viewer=ICGeoMap","portal":"https://protect.checkpoint.com/v2/r01/___https://twn-coupeville-wa.smartgovcommunity.com/Public/Home___.YzJ1OnppcGx5ZmliZXI6YzpvOjQ3Njk2YTJjMzIzODU3NDlkMDYzMmUzNTA0Njg5YWU2Ojc6ZjJmMzo3Yjc2MjAxNzk0OTU4ZWIwMWNkMWFlYmIyYTQ2MzYwZmY0MjRlZTIyNTM2ZGY3MDgzMzBjYWY2NzJmYmIyYmYyOmg6RjpO","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgA7aOMLZ-o0Ta5H9lgbrSumARqLZTW9y8dMY-5m58DGPm0?e=XuchXC"}]},{"name":"Darrington - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"mailto: dianne.allen@darringtonwa.us","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBv2yK9rBRIT5tVmxRM9UbbAXUM85LbhW4uwn9Fu2mqUY0?e=1rIlZh"}]},{"name":"Department of Natural Resources - State","gis":"https://data-wadnr.opendata.arcgis.com/","portal":"https://www.dnr.wa.gov/programs-and-services/product-sales-and-leasing/rights-way","usefulLinks":[{"label":"WA DNR Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/EkcIvrreD5tPqFTAkH4f5fEBwYCume7dEoynpAjj_bJrsQ?e=cB5Bxm"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"}]},{"name":"Des Moines - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://desmoines-wa.permittrax.com/Citizen/Home/DESMON_L/ENGINEERING","usefulLinks":[{"label":"Des Moines Gis Website","url":"https://dmwa.maps.arcgis.com/home/index.html"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCZEnykKeexSIDmLcq09NHjAVtzgqwi5-D143tCgWanQXY?e=Rzwt9j"}]},{"name":"Douglas - County","gis":"https://experience.arcgis.com/experience/fcbc86024e52488980720a525435fb3d","portal":"https://co-douglas-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDu-apcTbEWQ7KVLNADgH42AaPTyRKxVqx2LyNbIu5EjJs?e=5WxUwM"}]},{"name":"Duvall - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://duvallwa.portal.opengov.com/","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCVRN7rH4MGSa-wLAw-aZzCAYhXwXmkNgQAX8PzJ8XdJF0?e=8trHhK"}]},{"name":"Edgewood - City","gis":"https://matterhornwab.co.pierce.wa.us/publicgis/","portal":"https://ci-edgewood-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Edgewood GIS","url":"https://edgewood-wa.maps.arcgis.com/apps/webappviewer/index.html?id=33c7da15a7ed43f28ea4f34cfc14e4cf"}]},{"name":"Edmonds - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD-QsIbKpx4Q5MIwAdUQKSoAWtaeGvp4p0gERJ98EFbKPE?e=thKE2f"}]},{"name":"Everett - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://onlinepermits.everettwa.gov/etrakit/default.aspx","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAlZMhdVTLlQI5yoEfpNqJyAaF6YRT8tNcPOJvNQziTTh0?e=cpyGBR"}]},{"name":"Everson - City","gis":"https://www.arcgis.com/apps/webappviewer/index.html?id=f2f8eaa500b04f54948c680bb280129f","portal":"mailto: dschoonover@thecityofeverson.com","usefulLinks":[{"label":"Process for TCP, WP an Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Payment Portal","url":"https://www.invoicecloud.com/portal/(S(zsol53nssabhmjvwljn241eo))/2/Site.aspx?G=fb9dfc86-f4c1-45e1-be93-da165b857ab6"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCylCNBvP-OQ6WRJY5CtqcEAQOv4CBFjEzxrSxoO6CyQmo?e=j1a8Kz"}]},{"name":"Ferndale - City","gis":"https://experience.arcgis.com/experience/8f640880f44043daab038966b66c0686#widget_23=active_datasource_id:ff934f4c911c4fea983eebbfecc88704,center:-13629625.55069445%2C6252298.459401601%2C102100,scale:288895.277144,level:11,rotation:0,viewpoint:%7B%22rotation%22%3A0%2C%22scale%22%3A288895.277144%2C%22targetGeometry%22%3A%7B%22spatialReference%22%3A%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D%2C%22x%22%3A-13629625.55069445%2C%22y%22%3A6252298.459401601%7D%7D","portal":"https://ci-ferndale-wa.smartgovcommunity.com/Permitting/PermitLandingPage/Index/302f6da0-23f0-4446-b19f-b06f00f634ee","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAMfujj_5x3TIlzAHfSETipAQMtupFubI6or0KRuCJyXTc?e=IXvCg2"}]},{"name":"Fredericksburg - City","gis":"","portal":"https://www.mgoconnect.org/cp/portal","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Fredericksburg Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/Ei7-eMMA8g1OjWReJwtZMyUB_YD_yIyJ3o8KgGTIjoavWg?e=JwdTzW"}]},{"name":"Gold Bar - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"mailto:d.beaston@cityofgoldbar.us","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Payment Portal","url":"https://allpaid.com/#/payment/a005zd/info"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAv0iV2ACiKQqkAiz0qOnHJAT2R22CCuyAnzLD4HaSQXw4?e=2NCifb"}]},{"name":"Granite Falls - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"mailto:Darla.Reese@granitefallswa.gov","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDVfetR5YKjRp_xGvUgIstrAQa6chUQvSMJoAMS8OFAFZY?e=wTD6at"}]},{"name":"Grant - County","gis":"https://grantcountywa.maps.arcgis.com/apps/webappviewer/index.html?id=f493cf3b971746609b4588893299dd55","portal":"https://co-grant-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCWdmqWWoihQr3ZFvy6lpmjAZbDrW2zMGs7qzZEXcS2e8k?e=o7tZH8"}]},{"name":"Grays Harbour - County","gis":"https://graysharborwa.mapgeo.io/datasets/properties?abuttersDistance=100&latlng=47.162736%2C-123.755909","portal":"https://co-graysharbor-wa.smartgovcommunity.com/ApplicationPublic/ApplicationHome","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDxo2AjVr_sTonhpBP6B_EYARO_Bqc2y-xJsO4394vYJyo?e=yhOW5J"}]},{"name":"Hamilton - Other","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"mailto:clerk.treasurer@townofhamiltonwa.com","usefulLinks":[{"label":"Process for TCP, WP and Pemits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDs2vNPyPwqSIT2TkGDEhRtAcy75U4Kczxkkdxg7qfWkA4?e=H2pCtP"}]},{"name":"HENDERSON - City","gis":"","portal":"","usefulLinks":[]},{"name":"Island - County","gis":"https://icgeomap.islandcountywa.gov/Html5Viewer/Index.html?viewer=ICGeoMap","portal":"mailto:ICPWAdmin@islandcountywa.gov","usefulLinks":[{"label":"Payment Portal","url":"https://co-island-wa.smartgovcommunity.com/Public/Home"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgB-xgByByoQTqLgzOqr9mceAZJtp5DrD2yoyz7NxV85s3I?e=hRxcLe"}]},{"name":"Issaquah - City","gis":"https://products.issaquahwa.gov/html5viewerpublic/index.html?viewer=issypublic","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Issaquah Sharepoint","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FIssaquah%2C%20City&newTargetListUrl=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents&viewpath=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FForms%2FAllItems%2Easpx"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Kenmore - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://kenmore.portal.iworq.net/portalhome/kenmore","usefulLinks":[{"label":"Utility GIS Map","url":"https://kenmore.maps.arcgis.com/home/index.html"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBZCpCgifRdTpgJRQnjeD4nAVFAsCIRF9Se4y5G1SVVo6s?e=1KGcuN"}]},{"name":"Kennewick - City","gis":"https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=ef4beb2778be4895ad44d7744dc127d1","portal":"https://selfservice.ci.kennewick.wa.us/EnerGov_Prod/SelfService#/home","usefulLinks":[{"label":"Kennewick I Map","url":"https://experience.arcgis.com/experience/deba9fa3b8004aef9b542b6c2440179c"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBC616jLGlXS7rAhlHt4CmkAQbFCfcQFlRnkzwnzXsDhzg?e=BeE0sZ"}]},{"name":"Kent - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"mailto:permitcenter@kentwa.gov","usefulLinks":[{"label":"Permit Center site","url":"https://www.kentwa.gov/pay-and-apply/apply-for-a-permit"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"King - County","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"","usefulLinks":[{"label":"Online Portal- Follow ups","url":"https://aca-prod.accela.com/kingco/Default.aspx"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=Lv6K6q"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDmjDTFWRXSQ7VMV_r6zDftARkpPgi3SCjE8d50rRKFNCE?e=WvIacY"}]},{"name":"Kirkland - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Kirkland I Map","url":"https://maps.kirklandwa.gov/Html5Viewer/"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDyqMKiB-vfRJL0u43Px1PvAeUHefbgwCYquAV-oaUBhGM?e=tWuWmy"}]},{"name":"La Conner - Other","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"mailto: adminclerk@townoflaconner.org","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD-T0px6osORZjZqVJ9fEZKAdSYQr7HXBEJHB7F01qJ9Sc?e=QrcNKn"}]},{"name":"Lacey - City","gis":"https://map.co.thurston.wa.us/Html5Viewer/Index.html?viewer=Permitting.Main","portal":"","usefulLinks":[{"label":"Payment Portal","url":"https://trakitweb.ci.lacey.wa.us/eTRAKiT/"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBRJ7MLlxIhSbtbNSm9hYJJAU8b5FSsuRbqmH00_6rf-og?e=dUckHU"}]},{"name":"Lake Forest Park - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"mailto: rdickinson@cityoflfp.gov","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCAETC3cv4AR63PHML8sEY5AUKeLN5Bmmzt8sdqkDPgaGA?e=6X0beE"}]},{"name":"Lake Stevens - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://apps.lakestevenswa.gov/Citizen/Home/LIVE/PUBWORKS","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD912W1g6xrTYNzhqWi2UiHASB5XiOpSMlwO7G5FCEMoP8?e=iydqwW"}]},{"name":"Lakewood-City - City","gis":"https://city-of-lakewood-gis-cityoflakewood.hub.arcgis.com/maps/370ebcbc9c9c433f85aed03ae94c945f/explore?location=47.158679%2C-122.521073%2C13.23","portal":"https://teams.microsoft.com/l/message/19:1132e0ec-045d-4a44-8b7b-584d1805ca47_ff0d64f1-1115-4f34-a916-649e49592df4@unq.gbl.spaces/1763060728294?context=%7B%22contextType%22%3A%22chat%22%7D","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBCsnEFNFeRSJI1w4NRio_xAQXCp1nJvW4l9dleEsdTAOw?e=V9x4R3"}]},{"name":"Latah - County","gis":"","portal":"","usefulLinks":[]},{"name":"Lyman - Other","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"mailto:clerk@townoflyman.com","usefulLinks":[{"label":"Payment Portal","url":"https://www.townoflyman.com/"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAV3KKCNc38So3p7LNlHGPBAZlWLqsMzlH9HNBr6A5rLls?e=91xeFu"}]},{"name":"Lynden - City","gis":"https://www.arcgis.com/apps/webappviewer/index.html?id=f2f8eaa500b04f54948c680bb280129f","portal":"https://ci-lynden-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgAS5BHutGzcTIjeOcu3shl3ATGYZrW7I2vSWN7s-3TR0_E?e=thvSt3"}]},{"name":"Lynnwood - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://ci-lynnwood-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=0dqiKQ"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBMBxykh2oTSaCaU-CiSMCCAXkcr50rF_qxUrWc7-INh58?e=w5NUFu"}]},{"name":"Marysville - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://permits.marysvillewa.gov/Search/permit.aspx","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDRkCUxt4GzTYYqBuqZ5ahcAR05rIJxmIx6yMd9ZaZjbn0?e=1WpgVz"}]},{"name":"Mill Creek - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://millcreekwa.portal.opengov.com/","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCJxtCHFDrOSaHI7EYqagBmAQ9yb9Spvg7RewNtzgWU4RA?e=hcIjS8"}]},{"name":"Milton - City","gis":"https://matterhornwab.co.pierce.wa.us/publicgis/","portal":"mailto:kfaucher@cityofmilton.net","usefulLinks":[{"label":"Milton City website","url":"https://www.cityofmilton.net/217/Planning-Community-Development"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Monroe - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://monroe.onlama.com/Account/Login.aspx","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBrUzigfmNKTKhyfTpQoNmpAQgItOoZ4pjwjGDvlHhKdMA?e=zlTvz3"}]},{"name":"Mount Vernon - City","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"https://ci-mountvernon-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"WSDOT Typicals","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBQmp38k1vrS7JpUGqudmiSAWyQUOztuEHF8YU3dp2s-xY?e=xl1Dzd"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgDTs0Ob-JCGR7EUQn1MYJg3AVKInLF28ohJFRG7pec2cJg?e=5l8BS7"}]},{"name":"Mountlake Terrace - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://mltw-trk.aspgov.com/eTRAKiT/","usefulLinks":[{"label":"Process for TCP, WP, & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCm2U87iOoVR7JJb5JS2XNnAbkj8qWvnJBn16z9jTrQ9V8?e=FZIjt3"}]},{"name":"Mukilteo - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://ci-mukilteo-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD2ixS1DrQiRbn2_lz8WU9XAUW6Q-TqY3AARUxfMN31GNA?e=i6Bhyw"}]},{"name":"Nooksack - City","gis":"https://www.arcgis.com/apps/webappviewer/index.html?id=f2f8eaa500b04f54948c680bb280129f","portal":"","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Nooksack Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/Euux1l_P5iZKswWNuOfMX94BUG2Y9Mtpqv3v6jH4k7pcrg?e=UMgwEe"}]},{"name":"Normandy Park - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://ci-normandypark-wa.smartgovcommunity.com/ApplicationPublic/ApplicationHome","usefulLinks":[{"label":"application portal","url":"https://ci-normandypark-wa.smartgovcommunity.com/ApplicationPublic/ApplicationHome"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Oak Harbor - City","gis":"https://icgeomap.islandcountywa.gov/Html5Viewer/Index.html?viewer=ICGeoMap","portal":"https://oakharbor.onlama.com/","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCs538sNj0NSYcc3y5_gX8xAXDYVdvyUpWD322KzsdJUwA?e=RX6sgB"}]},{"name":"Olympia - City","gis":"https://map.co.thurston.wa.us/vertigisstudio/web/?app=45b301bdb7f0438e81c817a16b4e8490","portal":"https://ci-olympia-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Payment Portal","url":"https://ci-olympia-wa.smartgovcommunity.com/Public/Home"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Othello - City","gis":"https://adamsingis.adams.in.us/Html5Viewer/index.html?viewer=Public_Property_Viewer.Adams_County_Public_GIS_Viewer","portal":"","usefulLinks":[]},{"name":"Pacific - County","gis":"https://pacificwa-mapsifter.publicaccessnow.com/defaultHTML5.aspx","portal":"mailto:dwatts@co.pacific.wa.us","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgB_gllfq-JKTaNy1_tcB_XuATGSrNyFX5E6py3h_0JfsSg?e=jTfOyJ"}]},{"name":"Pend Oreille - County","gis":"https://pendoreilleco.maps.arcgis.com/apps/webappviewer/index.html?id=3da51727ed494b5080a10f928f2d3674","portal":"mailto:publicworks4u@pendoreille.org","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBMmeY0iuwJQIW_N0_X2fGZAWl_oXzVcCJ0m_VNpUtPjlo?e=fbja7u"}]},{"name":"Pierce - County","gis":"https://matterhornwab.co.pierce.wa.us/publicgis/","portal":"mailto:pcutilrowpermit@piercecountywa.gov","usefulLinks":[{"label":"Portal for General Construction permits","url":"https://pals.piercecountywa.gov/palsonline/#/dashboard"},{"label":"Pierce County Typicals","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Pierce%20County/PIERCE%20COUNTY%20APPROVED%20TYPICALS?csf=1&web=1&e=EbetBl"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgC-VfL6ko2wQZLD7xjP3UFwAVdk50hdw7hWlw9WPdQT-J8?e=IEGA0R"}]},{"name":"Porth Orchard - City","gis":"https://psearch.kitsap.gov/psearch/","portal":"https://app.oncamino.com/portorchard-wa/login","usefulLinks":[{"label":"PORT ORCHARD SHAREPOINT","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FPort%20Orchard%2C%20City&viewid=7e8a5c4c%2Dc041%2D44ba%2D84fb%2De8207449eba0&newTargetListUrl=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents&viewpath=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FForms%2FAllItems%2Easpx"}]},{"name":"Pullman - City","gis":"https://www.arcgis.com/apps/mapviewer/index.html?webmap=f1211029d81c42e6a87fc9a7073e0c5a","portal":"https://cityofpullmanwa-energovweb.tylerhost.net/apps/selfservice#/dashboard","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgA5bNeln7TzT4QgFWZF71gzAetQ9Gdv4YYPBy_BHUICFG4?e=axa4Lz"}]},{"name":"Puyallup - City","gis":"https://matterhornwab.co.pierce.wa.us/publicgis/","portal":"https://permits.puyallupwa.gov/Portal/Account/Logon","usefulLinks":[{"label":"Process for WP, TCP, and permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/_layouts/15/Doc.aspx?sourcedoc=%7B5D61C8F4-EDF1-49D0-9D87-D227B442D327%7D&file=Process%20for%20TCP%2C%20WP%27s%2C%20and%20Permits.docx&action=default&mobileredirect=true"}]},{"name":"Quincy - City","gis":"https://grantcountywa.maps.arcgis.com/apps/webappviewer/index.html?id=f493cf3b971746609b4588893299dd55","portal":"mailto: info@quincywashington.us","usefulLinks":[{"label":"Process for WP, TCP, and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/_layouts/15/Doc.aspx?sourcedoc=%7B17F853C8-A328-4FA3-80B1-B49EC5C667DD%7D&file=Process%20for%20TCP%2C%20WP%27s%2C%20and%20Permits.docx&action=default&mobileredirect=true"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgBlAIqjCKMfTadqZlXev_tPAfTOVaBVT9jUW6BPOkiiLq8?e=veDwFQ"}]},{"name":"Redmond - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"mailto:ROWPermit@redmond.gov","usefulLinks":[{"label":"Payment Portal","url":"https://land.redmond.gov/EnerGov_Prod/SelfService#/home"},{"label":"Utility Viewer","url":"https://gis.redmond.gov/uv/"},{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgCfl_2YO02FSYjjiU_u-l_NAUskfj-aShQZUBmtfXcxaCw?e=n7fbT6"}]},{"name":"Renton - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://permitting.rentonwa.gov/#/home","usefulLinks":[{"label":"Renton IMap","url":"https://maps.rentonwa.gov/Html5viewer/Index.html?viewer=CORmaps"},{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/s/ATCOPermitTrafficControlPlanDesign/IQD0yGFd8e3QSZ2H0ie0QtMnAUVOLbtLUAFBKIM5btRHLKg?e=yYNPxY"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/IgD2pB01AMxfT5Wc5tzSwdgZAfMswHYCVmofy9wanDZUy-s?e=0JstEQ"}]},{"name":"Richland - City","gis":"https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=428dcedbce17467b841844e8908bf3e7","portal":"https://selfservice.ci.richland.wa.us/energov_prod/selfservice#/home","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Richland,%20City/How%20To%20Guide%20(Example)-%20Richland?d=wee0e9329573441e8a32a1fc22650bda1&csf=1&web=1&e=2QyHNA"}]},{"name":"Rock Island - City","gis":"","portal":"","usefulLinks":[{"label":"ROCK ISLAND SHAREPOINT","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FRock%20Island%2C%20City&newTargetListUrl=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents&viewpath=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FForms%2FAllItems%2Easpx"}]},{"name":"RR - Railroad","gis":"","portal":"","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Sammamish - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://mybuildingpermit.com/","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Sammamish,%20City/How%20To%20Guide%20(Example)-%20Sammamish?d=w568988fe4bb0447eadeb76354e0d61dc&csf=1&web=1&e=nwT5AY"}]},{"name":"SeaTac - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://lama.seatacwa.gov/","usefulLinks":[{"label":"work zone typical TCPs library","url":"https://wsdot.wa.gov/engineering-standards/all-manuals-and-standards/plan-sheet-library/work-zone-typical-traffic-control-plans-tcp"},{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"}]},{"name":"Seattle - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://services.seattle.gov/portal/customization/seattle/welcome.aspx","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Seattle,%20City/How%20To%20Guide%20(Example)-%20Seattle?d=w7fc2745bf2f7495497fdc4a41788ad36&csf=1&web=1&e=nA1KzM"}]},{"name":"Sedro- Woolley - City","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"https://sedro-woolley.portal.iworq.net/portalhome/sedro-woolley","usefulLinks":[{"label":"Sedro-Woolley Payment Portal","url":"https://secure.xpressbillpay.com/portal/payment_forms/index.php?id=MzI0Njk%3D"},{"label":"Process for TCP, WP & Sharepoint","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Sedro%20Woolley,%20City/How%20To%20Guide%20(Example)-%20Sedro-Woolley?d=weab6aeed05b941378665800fee436938&csf=1&web=1&e=oFQOTH"}]},{"name":"Shoreline - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://permits.shorelinewa.gov/etrakit/","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Shoreline,%20City/How%20To%20Guide%20(Example)-%20Shoreline?d=w87534b6a321343d096d6f3ec06ed902f&csf=1&web=1&e=PpLtbT"}]},{"name":"Skagit - County","gis":"https://www.skagitcounty.net/Maps/iMap/","portal":"https://skagitcountywa-energovweb.tylerhost.net/apps/selfservice#/dashboard","usefulLinks":[{"label":"Process for TCP, WP & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Skagit%20County/How%20To%20Guide%20(Example)-%20Skagit%20County?d=w87a99a3746d541eb81e007ece2db0782&csf=1&web=1&e=4K5RGI"}]},{"name":"Skykomish - Other","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"mailto:clerk@skykomishwa.gov","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Skykomish,%20Town/How%20To%20Guide%20(Examples)%20-%20Skykomish?d=wfb3137d0d35b4e17bd56e0907de02d25&csf=1&web=1&e=H86Rm2"}]},{"name":"Snohomish - City","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://snohomishwa-energovpub.tylerhost.net/apps/SelfService#/dashboard","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Snohomish,%20City/How%20To%20Guide%20(Examples)%20-%20Snohomish%20City?d=w02f7f2835e854c299e96332d4aaf47ae&csf=1&web=1&e=bv0XUA"}]},{"name":"Snohomish - County","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://pdspermitportal.snoco.org/pdsportal/app/login","usefulLinks":[{"label":"Flow Chart","url":"https://atcotelecom.sharepoint.com/:b:/s/ATCOPermitTrafficControlPlanDesign/EYu2v3Xs5z9LoOBW9iN557cBhx4--Bom_3aixRFjiV3Hbg?e=12WJJH"},{"label":"Process for TCP, WP's & permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Road Atlas","url":"https://www.snoco.org/v1/SPW/atlas/AtlasPage.asp"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Snohomish%20County/Coordinators-How%20To%20Guide-%20Snohomish%20County?d=w9add4dc104a647ff806f90e2e73b5081&csf=1&web=1&e=CAt3xO"}]},{"name":"Snohomish County Deviation - County","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"","usefulLinks":[{"label":"Flow Chart","url":"https://atcotelecom.sharepoint.com/sites/:b:/s/ATCOPermitTrafficControlPlanDesign/EYu2v3Xs5z9LoOBW9iN557cBhx4--Bom_3aixRFjiV3Hbg?e=12WJJH"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Snohomish%20County/Coordinators-How%20To%20Guide-%20Snohomish%20County?d=w9add4dc104a647ff806f90e2e73b5081&csf=1&web=1&e=CAt3xO"}]},{"name":"Snohomish County Pre-Design - County","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"https://snohomishcounty.jotform.com/240856320142044","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Snohomish%20County/Coordinators-How%20To%20Guide-%20Snohomish%20County?d=w9add4dc104a647ff806f90e2e73b5081&csf=1&web=1&e=CAt3xO"}]},{"name":"Snohomish D8 - County","gis":"https://gisapp.snoco.org/web/?app=58a994f3b5f64942a2b9859cc2196e8c","portal":"mailto:scd.utilities@co.snohomish.wa.us","usefulLinks":[{"label":"Flow Chart","url":"https://atcotelecom.sharepoint.com/:b:/s/ATCOPermitTrafficControlPlanDesign/EYu2v3Xs5z9LoOBW9iN557cBhx4--Bom_3aixRFjiV3Hbg?e=12WJJH"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Snohomish%20County/Coordinators-How%20To%20Guide-%20Snohomish%20County?d=w9add4dc104a647ff806f90e2e73b5081&csf=1&web=1&e=CAt3xO"}]},{"name":"Spokane - County","gis":"https://www.arcgis.com/apps/webappviewer/index.html?id=3bd21df38df54be58870e0d66c80d6ae","portal":"mailto: publicworkspermits@spokanecounty.org","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Spokane%20County/How%20to%20Guides%20%26%20Examples?d=w8ae3b9f64eb3471e85207307e5c4df1b&csf=1&web=1&e=hZQEXQ"}]},{"name":"Stanwood - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"https://stanwood.portal.iworq.net/portalhome/stanwood","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How To Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Stanwood,%20City/How%20To%20Guide%20(Examples)%20-%20Stanwood?d=w74429da8f5a6483288ccf84240d8fe94&csf=1&web=1&e=xVjigw"}]},{"name":"Sultan - City","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"https://public.mygov.us/sultan_wa","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Sultan,%20City/How%20To%20Guide%20(Examples)%20-%20Sultan?d=w7789cc175c2c49f89f92bec2cf320510&csf=1&web=1&e=G93YgF"}]},{"name":"Sumas - City","gis":"https://experience.arcgis.com/experience/8f640880f44043daab038966b66c0686#widget_23=active_datasource_id:ff934f4c911c4fea983eebbfecc88704,center:-13629625.55069445%2C6252298.459401601%2C102100,scale:288895.277144,level:11,rotation:0,viewpoint:%7B%22rotation%22%3A0%2C%22scale%22%3A288895.277144%2C%22targetGeometry%22%3A%7B%22spatialReference%22%3A%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D%2C%22x%22%3A-13629625.55069445%2C%22y%22%3A6252298.459401601%7D%7D","portal":"mailto:MQuinn@cityofsumas.com","usefulLinks":[{"label":"Payment Portal","url":"https://www.invoicecloud.com/portal/(S(v25gkbitjqy4jjobblkdefvg))/2/Site.aspx?G=cdbc7a41-b057-4616-9676-493652c09408"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Sumas,%20City/How%20To%20Guide%20(Examples)%20-%20Sumas?d=wf9bf386b023e400189ea3958d9ac923f&csf=1&web=1&e=vgggWk"}]},{"name":"Sumner - City","gis":"https://atip.piercecountywa.gov/app/v2/parcelSearch/search","portal":"https://cityofsumnerwa-energovweb.tylerhost.net/apps/selfservice#/homenerwa.gov/EnerGov_Prod/SelfService","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Sumner,%20City/How%20to%20Guide%20(Examples)-%20Sumner?d=w456c09d08eea4d689fa1b03bc0d1d92d&csf=1&web=1&e=SteFZ9"}]},{"name":"Tukwila - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://tukw-egov.aspgov.com/BP/logonuser.html","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Tukwila,%20City/How%20To%20Guide%20(Examples)%20-%20Tukwila?d=wa3c79b010d464700ad668e74f1b1dc0a&csf=1&web=1&e=lnOmRA"}]},{"name":"Tulalip - Tribal","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"","usefulLinks":[{"label":"Process for TCP, WP and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Tulalip%20-%20Neighborhood_Reservation%20in%20Snohomish%20County/How%20To%20Guide%20(Examples)%20-%20Tulalip?d=wc9102feafe4641538663ffb4f30fad2e&csf=1&web=1&e=ZHTDDl"}]},{"name":"Tulalip Tribe - Other","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"mailto:victoria.comer@atcotelecom.com","usefulLinks":[{"label":"Tulalip Tribe Sharepoint","url":"https://atcotelecom.sharepoint.com/:f:/s/ATCOPermitTrafficControlPlanDesign/EpJq4GdiqCZOjS0sq-xBH1kB0m1SWl8Z6B87YkK31akAvg?e=XgxRSg"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"}]},{"name":"Walla Walla - City","gis":"https://wallawallacountygis-wwcgis.hub.arcgis.com/apps/de8021d071d14ad187d1c1e9dea296fd/explore","portal":"mailto:permits@wallawallawa.gov","usefulLinks":[{"label":"Payment Portal","url":"https://wala-trk.aspgov.com/eTRAKiT/"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Walla%20Walla,%20City/How%20To%20Guide%20(Examples)%20-%20Walla%20Walla?d=wb106b8c9102f4c35bb29040632b2137b&csf=1&web=1&e=VxC0hl"}]},{"name":"Wenatchee - City","gis":"https://pacs.co.chelan.wa.us/mapSearch/","portal":"https://ci-wenatchee-wa.smartgovcommunity.com/Public/Home","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Wenatchee,%20City/How%20To%20Guide%20(Examples)%20-%20Wenatchee?d=w5e0ade3d1273456b86cdbad4b654070e&csf=1&web=1&e=7ulleD"}]},{"name":"West Richland - City","gis":"https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=428dcedbce17467b841844e8908bf3e7","portal":"mailto:twebb@westrichland.org","usefulLinks":[{"label":"West Richland's Zoning Map","url":"https://www.arcgis.com/home/webmap/viewer.html?webmap=cb8533068dc542da9772876d6d29fc19&extent=-119.417,46.272,-119.2903,46.323"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/West%20Richland,%20City/How%20To%20Guide%20(Examples)%20-%20West%20Richland?d=w5e77e158f57d442ead62ccdeb4fc69c3&csf=1&web=1&e=a4ISP5"}]},{"name":"Westport - City","gis":"https://graysharborwa.mapgeo.io/datasets/properties?abuttersDistance=100&latlng=47.162736%2C-123.755909","portal":"mailto:permit@ci.westport.wa.us","usefulLinks":[{"label":"Grays Harbor County 2nd GIS","url":"https://app.regrid.com/us/wa/grays-harbor#"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Westport,%20City/How%20To%20Guide%20(Examples)%20-%20Westport?d=wd428bdc0a6784fa88a0fa9da49ea8fb4&csf=1&web=1&e=XhXO68"}]},{"name":"Whatcom - County","gis":"https://experience.arcgis.com/experience/8f640880f44043daab038966b66c0686#widget_23=active_datasource_id:ff934f4c911c4fea983eebbfecc88704,center:-13629625.55069445%2C6252298.459401601%2C102100,scale:288895.277144,level:11,rotation:0,viewpoint:%7B%22rotation%22%3A0%2C%22scale%22%3A288895.277144%2C%22targetGeometry%22%3A%7B%22spatialReference%22%3A%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D%2C%22x%22%3A-13629625.55069445%2C%22y%22%3A6252298.459401601%7D%7D","portal":"https://whatcomcountywa-energovweb.tylerhost.net/apps/selfservice#/home","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Whatcom%20County/How%20To%20Guide%20(Examples)%20-%20Whatcom?d=w9eefb19dc61041bbbc776c6b7276cd9f&csf=1&web=1&e=7c6Fim"}]},{"name":"Woodinville - City","gis":"https://gismaps.kingcounty.gov/iMap/","portal":"https://aca-prod.accela.com/woodinville/default.aspx","usefulLinks":[{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Woodinville,%20City/How%20To%20Guide%20(Examples)%20-%20Woodinville?d=w7eb683f381fd4d1fb89ea8c2b4db0552&csf=1&web=1&e=TlkUQ3"}]},{"name":"Woodway - Other","gis":"https://scopi.snoco.org/Html5Viewer/Index.html?configBase=https://scopi.snoco.org/Geocortex/Essentials/REST/sites/SCOPI/viewers/SCOPI/virtualdirectory/Resources/Config/Default","portal":"https://customer.mybuildingpermit.com/","usefulLinks":[{"label":"Payment Portal","url":"https://secure.xpressbillpay.com/portal/payment_forms/?id=MTczOTY%3D"},{"label":"Process for TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/Woodway,%20Town/How%20To%20Guide%20(Examples)%20-%20Woodway?d=w36ecc6892e724d528f3a5b5ba536385e&csf=1&web=1&e=9yk6L8"}]},{"name":"WSDOT General - State","gis":"https://wsdot.wa.gov/data/tools/locatemp/","portal":"","usefulLinks":[{"label":"Process for TCP, WP's and Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=ojlWem"},{"label":"WSDOT Flow Chart","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT%2FHOW%20TO%20DETERMINE%20%2D%20WSDOT%20Jurisdiction%2Epdf&parent=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT&p=true&ga=1"},{"label":"Speed Limit Map- WSDOT Roads","url":"https://geo.wa.gov/datasets/WSDOT::wsdot-roadway-data-speed-limits/explore?location=47.359500%2C-120.750500%2C6"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/WSDOT/How%20To%20Guide%20(Examples)%20-%20WSDOT?d=wd057464274d44d73bd60949cc491f166&csf=1&web=1&e=HtUYxR"}]},{"name":"WSDOT Maintenance Notice - State","gis":"https://wsdot.wa.gov/data/tools/Locatemp/","portal":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared Documents/../../../../../:b:/s/ATCOPermitTrafficControlPlanDesign/EWZZ0qTey8FJkRXLoXscDB8Bhwov_DBuPepHlCQf2lZyyA?e=QAYQYa","usefulLinks":[{"label":"Ziply Maint. Notification Applications","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/WSDOT/Maintenance%20Notice%20Applications"},{"label":"Eastern Region Email","url":"mailto:ER-Utilities@wsdot.wa.gov"},{"label":"North Central Region Email","url":"mailto:wsdotncrufpappsubmit@wsdot.wa.gov"},{"label":"Northwest Region Email","url":"mailto:NWRUtilities@wsdot.wa.gov"},{"label":"Southwest Region Email","url":"mailto:SWUtilities @wsdot.wa.gov"},{"label":"South Central Region Email","url":"mailto:wsdotscutilpf@wsdot.wa.gov"},{"label":"Process TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Olympic Region Email","url":"https://atcotrafficcontrol.anvil.app/olympicregionutilities@wsdot.wa.gov"},{"label":"WSDOT Flow Chart","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT%2FHOW%20TO%20DETERMINE%20%2D%20WSDOT%20Jurisdiction%2Epdf&parent=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT&p=true&ga=1"},{"label":"Speed Limit Map- WSDOT Roads","url":"https://geo.wa.gov/datasets/WSDOT::wsdot-roadway-data-speed-limits/explore?location=47.359500%2C-120.750500%2C6"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/WSDOT/How%20To%20Guide%20(Examples)%20-%20WSDOT?d=wd057464274d44d73bd60949cc491f166&csf=1&web=1&e=HtUYxR"}]},{"name":"WSDOT TCP Co-Review - State","gis":"https://wsdot.wa.gov/data/tools/locatemp/","portal":"","usefulLinks":[{"label":"WSDOT Signal List","url":"https://protect.checkpoint.com/v2/r01/___https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwsdot.wa.gov%2Fpublications%2Ffulltext%2Fgis%2Fsignals%2FSumTable%2FMasterSignalList.xlsx&wdOrigin=BROWSELINK___.YzJ1OnppcGx5ZmliZXI6YzpvOmU1NGI0MWE3NDFjYjBkYWI4ZTBhNmQ4NmU5OTAxNWQ2Ojc6ZjJjNTo5OWJhZTgyMzlhNTdiOWRhOTRhZDZhOTdmMzRhMjMxMmI4NThhMTFhOTBlYjFlOGU1NTU5Y2EzNmZiYWRkNzdhOmg6VDpO"},{"label":"WSDOT Flow Chart","url":"https://atcotelecom.sharepoint.com/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT%2FHOW%20TO%20DETERMINE%20%2D%20WSDOT%20Jurisdiction%2Epdf&parent=%2Fsites%2FATCOPermitTrafficControlPlanDesign%2FShared%20Documents%2FState%20of%20Washington%2FWSDOT%2FHow%20To%20Guide%20%28Examples%29%20%2D%20WSDOT&p=true&ga=1"},{"label":"Speed Limit Map- WSDOT Roads","url":"https://geo.wa.gov/datasets/WSDOT::wsdot-roadway-data-speed-limits/explore?location=47.359500%2C-120.750500%2C6"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/WSDOT/How%20To%20Guide%20(Examples)%20-%20WSDOT?d=wd057464274d44d73bd60949cc491f166&csf=1&web=1&e=HtUYxR"}]},{"name":"WSDOT Utility - State","gis":"https://wsdot.wa.gov/data/tools/Locatemp/","portal":"","usefulLinks":[{"label":"WSDOT Flow Chart","url":"https://atcotelecom.sharepoint.com/:b:/s/ATCOPermitTrafficControlPlanDesign/ERowd8zzghxPsxpdSgdLJ6AB1WzD4jm-xfgez82Zp0Ctpw?e=quLELb"},{"label":"WSDOT Region Breakdown","url":"https://atcotelecom.sharepoint.com/:b:/s/ATCOPermitTrafficControlPlanDesign/EWZZ0qTey8FJkRXLoXscDB8Bhwov_DBuPepHlCQf2lZyyA?e=QAYQYa"},{"label":"Eastern Region Email","url":"mailto:ER-Utilities@wsdot.wa.gov"},{"label":"North Central Region Email","url":"mailto:wsdotncrufpappsubmit@wsdot.wa.gov"},{"label":"Northwest Region Email","url":"mailto:NWRUtilities@wsdot.wa.gov"},{"label":"South Central Region Email","url":"mailto:wsdotscutilpf@wsdot.wa.gov"},{"label":"Southwest Region Email","url":"mailto:SWUtilities @wsdot.wa.gov"},{"label":"Process TCP, WP's & Permits","url":"https://atcotelecom.sharepoint.com/:w:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/Admin%20and%20Management/2024%20Training%20Program/Process%20for%20TCP,%20WP%27s,%20and%20Permits.docx?d=w5d61c8f4edf149d09d87d227b442d327&csf=1&web=1&e=lsuir7"},{"label":"Olympic Region Email","url":"https://atcotrafficcontrol.anvil.app/olympicregionutilities@wsdot.wa.gov"},{"label":"Speed Limit Map- WSDOT Roads","url":"https://geo.wa.gov/datasets/WSDOT::wsdot-roadway-data-speed-limits/explore?location=47.359500%2C-120.750500%2C6"},{"label":"Submittal How to Guide","url":"https://atcotelecom.sharepoint.com/:f:/r/sites/ATCOPermitTrafficControlPlanDesign/Shared%20Documents/State%20of%20Washington/WSDOT/How%20To%20Guide%20(Examples)%20-%20WSDOT?d=wd057464274d44d73bd60949cc491f166&csf=1&web=1&e=HtUYxR"}]}];
+const EXCHANGES = [{"exch":"51421A","name":"KENNEWICK HIGHLANDS","clli":"KNWCWAXZ","manager":"A.SHEETS","engineer":"CHRIS ROSS 509-736-3723"},{"exch":"82110","name":"PITTOCK BLOCK","clli":"PTLD","manager":"D.PALMER","engineer":"ADAM HOLLANHEAD"},{"exch":"51700","name":"PASCO","clli":"PASCOWAXX","manager":"A.SHEETS","engineer":"MICHAEL TOVEY 253-302-1096"},{"exch":"51640","name":"THE DALLES","clli":"","manager":"A.SHEETS","engineer":"IAN LEWIS 509-736-3718"},{"exch":"51513","name":"WALLA WALLA","clli":"WLWLWAFP","manager":"A.SHEETS","engineer":"IAN LEWIS 509-736-3718"},{"exch":"51498","name":"OTHELLO","clli":"OTHE","manager":"A.SHEETS","engineer":"IAN LEWIS 509-736-3718"},{"exch":"51497","name":"COLVILLE","clli":"CLVL","manager":"T.MURN","engineer":"BRANDON WONG 208-783-5277"},{"exch":"51495","name":"YAKIMA","clli":"YAKMWAFP","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51494","name":"WESTPORT","clli":"WSPT","manager":"D.COLLINS","engineer":"MIKE HAKAHAN"},{"exch":"51493","name":"TONASKET","clli":"TNSK","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51492","name":"SEDRO WOOLLEY (GTE)","clli":"SWLY","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51491","name":"SUMAS","clli":"SUMS","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51490","name":"REPUBLIC","clli":"RPBL","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51489","name":"NILE","clli":"NILE","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51488","name":"NACHES","clli":"NCHS","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51487","name":"MOUNT VERNON (GTE)","clli":"MTVR","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51486","name":"MARBLEMOUNT","clli":"MRBL","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51485","name":"MAPLE FALLS","clli":"MPFL","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51484","name":"MOLSON-CHESAW","clli":"MLSN","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51483","name":"LYNDEN","clli":"LYND","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51482","name":"LOOMIS","clli":"LOMS","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51481","name":"LAUREL","clli":"LARL","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51480","name":"LA CONNER","clli":"LACN","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51479","name":"HAMILTON/LYMAN","clli":"HMTN","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51478","name":"GRAYLAND","clli":"GRLD","manager":"D.COLLINS","engineer":"MIKE HAKAHAN"},{"exch":"51477","name":"FERNDALE","clli":"FNDL","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51476","name":"EVERSON","clli":"EVSN","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51475","name":"EDISON","clli":"EDSN","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51474","name":"DEMING","clli":"DMNG","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51473","name":"CUSTER","clli":"CSTR","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51472","name":"CURLEW","clli":"CRLW","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51471","name":"CONWAY","clli":"CNWY","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51470","name":"CONCRETE","clli":"CNCR","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51469","name":"BURLINGTON (GTE)","clli":"","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51468","name":"BIRCH BAY","clli":"BRBA","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51467","name":"BLAINE","clli":"BLAN","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51466","name":"BIG LAKE","clli":"BGLK","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51465","name":"ALGER","clli":"ALGR","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51464","name":"ACME","clli":"ACME","manager":"R.HELMICK","engineer":"BARB ROBINSON"},{"exch":"51463","name":"WATERVILLE","clli":"WTVL","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51462","name":"WASHOUGAL RIVER","clli":"WGRV","manager":"D.PALMER","engineer":"PETR SERBINOVICH"},{"exch":"51461","name":"WASHOUGAL","clli":"WSHG","manager":"D.PALMER","engineer":"PETR SERBINOVICH"},{"exch":"51460","name":"WEST RICHLAND","clli":"WRLD","manager":"A.SHEETS","engineer":"KATHERINE CICHY 509-736-3726"},{"exch":"51459","name":"WENATCHEE","clli":"WNTC","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51458","name":"WOODLAND","clli":"WDLD","manager":"D.PALMER","engineer":"PETR SERBINOVICH"},{"exch":"51457","name":"THORNTON","clli":"THTN","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51456","name":"TEKOA / TENSED","clli":"TEKO","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51455","name":"SEDRO WOOLLEY (LOCAL)","clli":"SWLY","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51454","name":"SULTAN","clli":"SULT","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51453","name":"STANWOOD","clli":"STWD","manager":"R.HELMICK","engineer":"WAYNE WENDELL"},{"exch":"51452","name":"STEVENS PASS","clli":"STPS","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51451","name":"SOAP LAKE","clli":"SOLK","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51451","name":"MISSION PEAK RPTR","clli":"MSPK","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51450","name":"SNOHOMISH","clli":"SNHS","manager":"R.HELMICK","engineer":"SAMANTHA JOHNSTON"},{"exch":"51449","name":"SAMMAMISH","clli":"SMSH","manager":"D.COLLINS","engineer":"JACOB LEWIS"},{"exch":"51448","name":"SILVER LAKE","clli":"SLLK","manager":"D.COLLINS","engineer":"JOSH BUTTS"},{"exch":"51447","name":"SKYKOMISH","clli":"SKYK","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51446","name":"ROSALIA","clli":"ROSL","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51445","name":"REDMOND","clli":"RDMD","manager":"D.COLLINS","engineer":"TOM DACEY"},{"exch":"51444","name":"MEADOW SPRINGS","clli":"RCLD","manager":"A.SHEETS","engineer":"KATHERINE CICHY 509-736-3726"},{"exch":"51443","name":"NORTH RICHLAND","clli":"RCLD","manager":"A.SHEETS","engineer":"MICHAEL TOVEY 253-302-1096"},{"exch":"51443","name":"RICHLAND","clli":"RCLD","manager":"A.SHEETS","engineer":"MICHAEL TOVEY 253-302-1096"},{"exch":"51441","name":"RICHMOND BEACH","clli":"RCBH","manager":"D.COLLINS","engineer":"MIKE HAKAHAN"},{"exch":"51440","name":"QUINCY","clli":"QNCY","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51439","name":"PULLMAN","clli":"PLMN","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51437","name":"OAK HARBOR","clli":"OKHR","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51436","name":"OAKESDALE","clli":"OKDL","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51434","name":"MARYSVILLE","clli":"MYVI","manager":"R.HELMICK","engineer":"MICHAEL TINCHER"},{"exch":"51433","name":"MOUNT VERNON (LOCAL)","clli":"MTVR","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51432","name":"MANOR WAY","clli":"MRWY","manager":"D.COLLINS","engineer":"JOSH BUTTS"},{"exch":"51431","name":"MONROE","clli":"MONR","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51430","name":"MANSON","clli":"MNSN","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51429","name":"MANSFIELD","clli":"MNFD","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51428","name":"MALDEN","clli":"MLDN","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51427","name":"LEAVENWORTH","clli":"LVWO","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51426","name":"LAKE WENATCHEE","clli":"LKWN","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51425","name":"LAKE STEVENS","clli":"LKST","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51424","name":"LAKE GOODWIN","clli":"LKGW","manager":"R.HELMICK","engineer":"WAYNE WENDELL"},{"exch":"51423","name":"LATAH","clli":"LATH","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"51422","name":"KIRKLAND","clli":"KRLD","manager":"D.COLLINS","engineer":"CHERYL SCHNEIDER"},{"exch":"51421","name":"BADGER HILL","clli":"BGHL","manager":"A.SHEETS","engineer":"CHRIS ROSS 509-736-3723"},{"exch":"51421","name":"KENNEWICK MAIN","clli":"KNWCWAXB","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51420","name":"JUANITA","clli":"JUNT","manager":"D.COLLINS","engineer":"CHERYL SCHNEIDER"},{"exch":"51419","name":"HALLS LAKE","clli":"HLLK","manager":"D.COLLINS","engineer":"MIKE HAKAHAN"},{"exch":"51418","name":"GRANITE FALLS","clli":"GRFL","manager":"R.HELMICK","engineer":"BLAKE SERVICE"},{"exch":"51416","name":"GEORGE","clli":"GERG","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51414","name":"FAIRFIELD / ROCK CR","clli":"FRFD","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"51413","name":"LOWER BADGER MOUNTAIN","clli":"BRMT","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51413","name":"EAST WENATCHEE","clli":"EWNC","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51411","name":"ENTIAT / ORONDO","clli":"ENTT","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51410","name":"DUVALL","clli":"DVLL","manager":"D.COLLINS","engineer":"CHERYL SCHNEIDER"},{"exch":"51409","name":"DARRINGTON","clli":"DRTN","manager":"R.HELMICK","engineer":"WAYNE WENDELL"},{"exch":"51408","name":"CASHMERE","clli":"CSHR","manager":"A.SHEETS","engineer":"ALICIA COFER 509-881-5352"},{"exch":"51407","name":"COUPEVILLE","clli":"CPVL","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51406","name":"CAMANO ISLAND","clli":"CMIS","manager":"R.HELMICK","engineer":"WAYNE WENDELL"},{"exch":"51405","name":"CLEARVIEW","clli":"CLVW","manager":"D.COLLINS","engineer":"JOSH BUTTS"},{"exch":"51404","name":"CHELAN","clli":"CHLN","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51403","name":"CAMAS","clli":"CAMS","manager":"D.PALMER","engineer":"PETR SERBINOVICH"},{"exch":"51402","name":"BURLINGTON (LOCAL)","clli":"BURL","manager":"R.HELMICK","engineer":"DAWN ALVA"},{"exch":"51401","name":"BREWSTER","clli":"BRWS","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51400","name":"BRIDGEPORT","clli":"BRPT","manager":"A.SHEETS","engineer":"CHESNA KERN 509-859-3710"},{"exch":"51399","name":"BOTHELL","clli":"BOTH","manager":"D.COLLINS","engineer":"STEPHEN WALKINS"},{"exch":"51398","name":"BENTON CITY","clli":"BNCY","manager":"A.SHEETS","engineer":"KATHERINE CICHY 509-736-3726"},{"exch":"51397","name":"ARLINGTON","clli":"ARTN","manager":"R.HELMICK","engineer":"WAYNE WENDELL"},{"exch":"51396","name":"ANACORTES","clli":"ANCR","manager":"R.HELMICK","engineer":"MICHELLE SCHAEDLER"},{"exch":"51360","name":"YAM HILL","clli":"YMHL","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51359","name":"WALLOWA","clli":"WLLW","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51358","name":"WILSONVILLE","clli":"WIVL","manager":"D.PALMER","engineer":"IAN COOK"},{"exch":"51357","name":"VALLEY VIEW","clli":"VYVW","manager":"D.PALMER","engineer":"SAM VILLALUZ"},{"exch":"51356","name":"VERNONIA","clli":"VRNN","manager":"D.PALMER","engineer":"JACOB PACKARD"},{"exch":"51355","name":"UNION","clli":"UNIN","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51354","name":"TUALATIN","clli":"TULT","manager":"D.PALMER","engineer":"CHASE CLARK"},{"exch":"51353","name":"TURNER","clli":"TRNR","manager":"D.PALMER","engineer":"JASON FRANCIS"},{"exch":"51352","name":"BULL MOUNTAIN","clli":"TGRD","manager":"D.PALMER","engineer":"JASON BELL"},{"exch":"51351","name":"TIGARD","clli":"TGRD","manager":"D.PALMER","engineer":"RUSS WELLS"},{"exch":"51350","name":"STAFFORD","clli":"STFR","manager":"D.PALMER","engineer":"IAN COOK"},{"exch":"51349","name":"SUNNYSIDE","clli":"SNSD","manager":"D.PALMER","engineer":"SAM VILLALUZ"},{"exch":"51348","name":"SANDY","clli":"SNDY","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51347","name":"SOMERSET","clli":"SMRW","manager":"D.PALMER","engineer":"VERONICA GONZALEZ"},{"exch":"51346","name":"SILVERTON","clli":"SLTN","manager":"D.PALMER","engineer":"JASON FRANCIS"},{"exch":"51345","name":"SHERWOOD","clli":"SHWD","manager":"D.PALMER","engineer":"TAM NGUYEN"},{"exch":"51344","name":"SCHOLLS","clli":"SCHL","manager":"D.PALMER","engineer":"CHASE CLARK"},{"exch":"51343","name":"REEDSPORT","clli":"RDPT","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51342","name":"POWERS","clli":"PWRS","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51341","name":"PORT ORFORD","clli":"PTOR","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51340","name":"PROVOLT","clli":"PRVT","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51339","name":"ORIENT","clli":"ORNT","manager":"D.PALMER","engineer":"JOANN NELSON"},{"exch":"51338","name":"NEWBERG","clli":"NWBR","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51337","name":"NORTH BEND","clli":"NBND","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51336","name":"MYRTLE POINT","clli":"MYPN","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51335","name":"MURPHY","clli":"MRPH","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51334","name":"MCMINNVILLE","clli":"MMVL","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51333","name":"MILL CITY","clli":"MLCY","manager":"D.PALMER","engineer":"JASON FRANCIS"},{"exch":"51332","name":"LOSTINE","clli":"LOST","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51331","name":"LANGLOIS","clli":"LNGL","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51330","name":"LAKESIDE","clli":"LKSD","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51329","name":"LAGRANDE","clli":"LAGR","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51328","name":"JOSEPH","clli":"JSPH","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51327","name":"IMNAHA","clli":"IMNH","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51326","name":"IMBLER","clli":"IMBL","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51325","name":"HILLSBORO","clli":"HLBO","manager":"D.PALMER","engineer":"ALEX ELERT / MICHAEL NGUYEN"},{"exch":"51324","name":"HOODLAND","clli":"HDLD","manager":"D.PALMER","engineer":"SAM VILLALUZ"},{"exch":"51323","name":"GASTON","clli":"GSTN","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51322","name":"GRESHAM","clli":"GRHM","manager":"D.PALMER","engineer":"MARIA GRAHAM"},{"exch":"51321","name":"GOLD BEACH","clli":"GLBH","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51320","name":"GRAND ISLAND","clli":"GDIS","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51319","name":"FOREST GROVE","clli":"FRGV","manager":"D.PALMER","engineer":"CHASE CLARK"},{"exch":"51318","name":"ENTERPRISE","clli":"ENTR","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51317","name":"EMPIRE","clli":"EMPR","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51316","name":"ELGIN","clli":"ELGN","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51315","name":"DAYTON","clli":"DYTN","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51314","name":"DETROIT","clli":"DTRT","manager":"D.PALMER","engineer":"JASON FRANCIS"},{"exch":"51313","name":"COOS BAY","clli":"CSBY","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51312","name":"COQUILLE","clli":"CQLL","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51311","name":"COVE","clli":"COVE","manager":"A.SHEETS","engineer":"HOMERO GONZALEZ 509-736-3734"},{"exch":"51310","name":"CLATSKANIE","clli":"CLTS","manager":"D.PALMER","engineer":"JACOB PACKARD / JOANN NELSON"},{"exch":"51309","name":"BEAVERTON","clli":"BVTN","manager":"D.PALMER","engineer":"JASON BELL"},{"exch":"51308","name":"BANKS","clli":"BNKS","manager":"D.PALMER","engineer":"JASON BELL"},{"exch":"51307","name":"BANDON","clli":"BNDN","manager":"A.SHEETS","engineer":"MONTE RUTHERFORD - 541-269-3396"},{"exch":"51306","name":"BROOKINGS","clli":"BKNG","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"51305","name":"AUMSVILLE","clli":"AMVL","manager":"D.PALMER","engineer":"JASON FRANCIS"},{"exch":"51304","name":"AMITY","clli":"AMTY","manager":"D.PALMER","engineer":"JUSTIN FANTZ"},{"exch":"51303","name":"ALOHA","clli":"ALOH","manager":"D.PALMER","engineer":"TAM NGUYEN"},{"exch":"50197","name":"WALLACE","clli":"WLLC","manager":"T.MURN","engineer":"KEVIN TEO 208-819-8333"},{"exch":"50196","name":"WEIPPE","clli":"WEPP","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50195","name":"ST MARIES","clli":"STMR","manager":"T.MURN","engineer":"WYATT REDMOND 208-797-4426"},{"exch":"50194","name":"SPIRIT LAKE","clli":"SPLK","manager":"T.MURN","engineer":"TIM LAPLANTE 208 997-1840"},{"exch":"50193","name":"SANDPOINT","clli":"SNPN","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"50192","name":"RATHDRUM","clli":"RTHD","manager":"T.MURN","engineer":"BRANDON WONG 208-783-5277"},{"exch":"50191","name":"ROCKFORD / SETTERS","clli":"RCFR","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"50190","name":"POTLATCH","clli":"PTLT","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50189","name":"POST FALLS","clli":"PSFL","manager":"T.MURN","engineer":"KEVIN TEO 208-819-8333"},{"exch":"50188","name":"PRIEST RIVER","clli":"PRRV","manager":"T.MURN","engineer":"BRANDON WONG 208-783-5277"},{"exch":"50187","name":"PRIEST LAKE","clli":"PRLK","manager":"T.MURN","engineer":"BRANDON WONG 208-783-5277"},{"exch":"50186","name":"PINEHURST","clli":"PNHR","manager":"T.MURN","engineer":"KEVIN TEO 208-819-8333"},{"exch":"50185","name":"PLUMMER-WORLEY","clli":"PLMR","manager":"T.MURN","engineer":"WYATT REDMOND 208-797-4426"},{"exch":"50184","name":"PIERCE","clli":"PIRC","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50183","name":"PECK","clli":"PECK","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50182","name":"PALOUSE","clli":"PALS","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"50181","name":"OROFINO","clli":"ORFN","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50180","name":"NEWPORT","clli":"NWPT","manager":"T.MURN","engineer":"BRANDON WONG 208-783-5277"},{"exch":"50179","name":"MOSCOW","clli":"MSCW","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50178","name":"MULLAN","clli":"MLLN","manager":"T.MURN","engineer":"KEVIN TEO 208-819-8333"},{"exch":"50177","name":"KELLOGG","clli":"KLLG","manager":"T.MURN","engineer":"KEVIN TEO 208-819-8333"},{"exch":"50176","name":"HAYDEN LAKE","clli":"HYLK","manager":"T.MURN","engineer":"TIM LAPLANTE 208 997-1840"},{"exch":"50175","name":"HARRISON","clli":"HRSN","manager":"T.MURN","engineer":"WYATT REDMOND 208-797-4426"},{"exch":"50174","name":"HOPE","clli":"HOPE","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"50173","name":"GARFIELD","clli":"GRFD","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"50172","name":"GENESEE","clli":"GENS","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50171","name":"FARMINGTON","clli":"FRTN","manager":"T.MURN","engineer":"TERRY LEAVITT 208-301-4561"},{"exch":"50169","name":"DEARY","clli":"DERY","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50168","name":"COEUR D ALENE","clli":"CRAL","manager":"T.MURN","engineer":"WYATT REDMOND 208-797-4426"},{"exch":"50167","name":"CLARK FORK","clli":"CLFK","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"50166","name":"BAYVIEW","clli":"BYVW","manager":"T.MURN","engineer":"TIM LAPLANTE 208 997-1840"},{"exch":"50165","name":"BOVILL","clli":"BOVL","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"50164","name":"BONNERS FERRY","clli":"BNFY","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"50144","name":"EVERETT/CASINO","clli":"EVRT","manager":"R.HELMICK","engineer":"SAMANTHA JOHNSTON"},{"exch":"29874","name":"RIDDLE","clli":"RDDL","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"29140","name":"TROY","clli":"TROY","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"29080","name":"LIBBY","clli":"LBBY","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"29050","name":"EUREKA","clli":"EURK","manager":"T.MURN","engineer":"NIC STEINER 208 659-8999"},{"exch":"25556","name":"WILDER","clli":"WLDR","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25554","name":"MARSING","clli":"MRNG","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25550","name":"HOMEDALE","clli":"HMDL","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25502","name":"ABERDEEN","clli":"ABER","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25500","name":"SPRINGFIELD","clli":"SPFD","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25450","name":"PARMA","clli":"PARM","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25424","name":"SWEET/OLA","clli":"SWET","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25420","name":"HORSESHOE BEND","clli":"HRBN","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25418","name":"GARDEN VALLEY","clli":"GRVY","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25416","name":"FAIRFIELD","clli":"FRFD","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25414","name":"CAREY","clli":"CARY","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25412","name":"ELK CITY","clli":"EKCY","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25410","name":"WHITEBIRD","clli":"WHBR","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25408","name":"MCCALL","clli":"MCCL","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25406","name":"RIGGINS","clli":"RGNS","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25404","name":"CASCADE","clli":"CSDC","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25402","name":"NEW MEADOWS","clli":"NWMD","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"25400","name":"DONNELLY","clli":"DNLY","manager":"T.MURN","engineer":"BRENT MULFORD 208-310-0786"},{"exch":"20866","name":"WOLF CREEK","clli":"WLCK","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20863","name":"MYRTLE CREEK","clli":"MYCK","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20839","name":"CANYONVILLE","clli":"CNVL","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20837","name":"AZALEA","clli":"AZAL","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20832","name":"GLENDALE","clli":"GLDL","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20825","name":"DAYS CREEK","clli":"DYCK","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20597","name":"SELMA","clli":"SELM","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"},{"exch":"20592","name":"CAVE JUNCTION","clli":"CVJT","manager":"D.PALMER","engineer":"MARC CATE 541-269-1956"},{"exch":"20590","name":"O'BRIEN","clli":"OBRN","manager":"A.SHEETS","engineer":"MARC CATE 541-269-1956"}];
+let detectedMatches=[];
+
+function setStatus(s){document.getElementById('status').textContent=s}
+function normalizeText(v){return String(v||'').trim().replace(/[\n\r\t]+/g,' ').replace(/\s+/g,' ').replace(/\s*,\s*/g,', ').replace(/,+/g,',').replace(/^,|,$/g,'')}
+function normalizedAddress(){return normalizeText(document.getElementById('address').value)}
+function lookupAddress(){
+  return normalizedAddress().replace(/^(?:REVISION\s*-\s*|REAPPLY\s*-\s*)+/i,'').trim();
+}
+function addressVariants(){
+  const raw=lookupAddress();
+  const variants=[];
+  if(raw) variants.push(raw);
+  if(raw){
+    const noZip=raw.replace(/\s+\d{5}(?:-\d{4})?$/,'');
+    if(noZip!==raw) variants.push(noZip);
+  }
+  if(raw && !/\b(?:USA|United States)\b/i.test(raw)) variants.push(raw+', USA');
+  if(raw && /\bWA\s+\d{5}(?:-\d{4})?\b/i.test(raw)) variants.push(raw.replace(/\bWA\b/i,'Washington'));
+  return [...new Set(variants)];
+}
+function parseAddress(addr){
+  const out={city:'',state:'',zip:'',country:'US'};
+  const m=addr.match(/,\s*([^,]+),\s*([A-Za-z]{2}|[A-Za-z][A-Za-z .'-]+)\s+(\d{5}(?:-\d{4})?)\s*$/);
+  if(m){out.city=m[1].trim();out.state=m[2].trim();out.zip=m[3].trim();return out}
+  const m2=addr.match(/(?:,|\s)\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
+  if(m2){out.state=m2[1];out.zip=m2[2]}
+  const parts=addr.split(',').map(x=>x.trim()).filter(Boolean);
+  if(!out.city && parts.length>=3) out.city=parts[parts.length-2];
+  if(!out.state && parts.length>=2) out.state=parts[parts.length-2].match(/^([A-Za-z]{2})\b/)?.[1]||'';
+  return out;
+}
+function googleSearchUrl(){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lookupAddress())}
+function openExternal(url){
+  if(!url) return;
+  const a=document.createElement('a');
+  a.href=url;
+  a.target='_blank';
+  a.rel='noopener noreferrer';
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function osmMapUrl(){
+  if(Number.isFinite(lat)&&Number.isFinite(lon)) return 'https://www.openstreetmap.org/?mlat='+encodeURIComponent(lat)+'&mlon='+encodeURIComponent(lon)+'#map=16/'+encodeURIComponent(lat)+'/'+encodeURIComponent(lon);
+  const q=lookupAddress();
+  return q ? 'https://www.openstreetmap.org/search?query='+encodeURIComponent(q) : 'https://www.openstreetmap.org/';
+}
+function refreshExternalLinks(){
+  const urls={
+    topGoogleLink: googleSearchUrl(),
+    googlePreviewLink: googleSearchUrl(),
+    topRandyLink: Number.isFinite(lat)&&Number.isFinite(lon) ? randyUrl() : 'https://www.randymajors.org/locationinfoongooglemaps',
+    topOSMLink: osmMapUrl(),
+    roadMapOpenLink: osmMapUrl(),
+    imageryMapOpenLink: Number.isFinite(lat)&&Number.isFinite(lon) ? 'https://www.arcgis.com/home/webmap/viewer.html?center='+encodeURIComponent(lon)+','+encodeURIComponent(lat)+'&level=17&basemap=World_Imagery' : 'https://www.arcgis.com/home/webmap/viewer.html?basemap=World_Imagery',
+    wsdotOpenLink: 'https://wsdot.wa.gov/data/tools/geoportal/?config=FunctionalClass',
+    wsdotPanelLink: 'https://wsdot.wa.gov/data/tools/geoportal/?config=FunctionalClass'
+  };
+  for(const [id,url] of Object.entries(urls)){ const el=document.getElementById(id); if(el && url) el.href=url; }
+}
+function openMaps(){
+  const q=lookupAddress();
+  if(!q){setStatus('Enter an address first.');return}
+  openExternal(googleSearchUrl());
+}
+function openRandy(){
+  if(Number.isFinite(lat)&&Number.isFinite(lon)){
+    openExternal(randyUrl());
+    return;
+  }
+  openExternal('https://www.randymajors.org/locationinfoongooglemaps');
+}
+function openOSM(){
+  const q=lookupAddress();
+  if(!q){setStatus('Enter an address first.');return}
+  openExternal('https://www.openstreetmap.org/search?query='+encodeURIComponent(q));
+}
+function openStreetView(){
+  const q=lookupAddress();
+  if(!q){setStatus('Enter an address first.');return}
+  openExternal('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q)+'&layer=c');
+}
+function normalizeName(s){
+  return String(s||'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function normalizeStateCode(s){
+  const v=String(s||'').trim();
+  const map={Washington:'WA',Oregon:'OR',Idaho:'ID',California:'CA',Montana:'MT',Arizona:'AZ',Nevada:'NV',Utah:'UT'};
+  return v.length===2 ? v.toUpperCase() : (map[v]||v);
+}
+function normalizeExchangeName(s){
+  return normalizeText(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g,' ')
+    .replace(/\b(local|gte|new)\b/g,' ')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+}
+function exchangeCandidates(parsed){
+  const city=normalizeExchangeName(parsed.city||'');
+  if(!city) return [];
+  return EXCHANGES.filter(x=>normalizeExchangeName(x.name)===city);
+}
+function renderExchangeLookup(parsedOverride){
+  const parsed=parsedOverride||parseAddress(normalizedAddress());
+  const status=document.getElementById('exchangeLookupStatus');
+  const ex=document.getElementById('exchange');
+  const clli=document.getElementById('clli');
+  const eng=document.getElementById('engineer');
+  const mgr=document.getElementById('exchangeManager');
+  if(!ex||!clli||!eng||!mgr) return;
+  const candidates=exchangeCandidates(parsed);
+  if(candidates.length===1){
+    const x=candidates[0];
+    ex.value=x.exch;
+    clli.value=x.clli||'';
+    eng.value=x.engineer||'';
+    mgr.value=x.manager||'';
+    if(status) status.textContent=`Exchange reference match: ${x.name} → ${x.exch} / ${x.clli||'CLLI not listed'} / ${x.engineer||'Engineer not listed'}. Legacy/test data — verify current values.`;
+  } else if(candidates.length>1){
+    ex.value='';
+    clli.value='';
+    eng.value='';
+    mgr.value='';
+    const names=candidates.map(x=>`${x.exch} – ${x.name}${x.clli?` – ${x.clli}`:''}`).join('; ');
+    if(status) status.textContent=`Multiple legacy exchange rows matched ${parsed.city}: ${names}. Select/enter the correct exchange manually.`;
+  } else {
+    if(status) status.textContent=parsed.city?`No exact exchange reference match for ${parsed.city}. Enter/verify the exchange manually.`:'';
+  }
+  renderText();
+}
+function populateJurisdictionSelect(matches){
+  const sel=document.getElementById('selectedJurisdiction');
+  if(!sel) return;
+  const prior=sel.value;
+  const detectedNames=new Set(matches.map(m=>m.name));
+  const all=[...new Map(JURISDICTIONS.map(x=>[x.name,x])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+  const options=['<option value="">Select after verification</option>'];
+  all.forEach(m=>{
+    const label=detectedNames.has(m.name)?`[Detected] ${m.name}`:m.name;
+    options.push(`<option value="${esc(m.name)}">${esc(label)}</option>`);
+  });
+  sel.innerHTML=options.join('');
+  if(prior && all.some(m=>m.name===prior)) sel.value=prior;
+  else if(matches.length) sel.value=matches[0].name;
+}
+function selectedJurisdictionResource(){
+  const name=selectedJurisdictionText();
+  return name ? JURISDICTIONS.find(x=>x.name===name) || null : null;
+}
+function jurisdictionChanged(){
+  renderJurisdictionResources();
+  renderText();
+}
+function cityCandidates(parsed){
+  const city=String(parsed.city||'').trim();
+  if(!city) return [];
+  return JURISDICTIONS.filter(x=>normalizeName(x.name)===normalizeName(city+' - City'));
+}
+function countyCandidates(parsed, geo){
+  const county=String((geo&&geo.county)||'').trim();
+  if(!county) return [];
+  const core=normalizeName(county).replace(/ county$/,'').trim();
+  return JURISDICTIONS.filter(x=>{
+    const n=normalizeName(x.name);
+    return n.endsWith(' county') && n.startsWith(core+' ') && n.includes(' county');
+  });
+}
+function detectJurisdictionResources(){
+  const parsed=parseAddress(normalizedAddress());
+  const exactCity=cityCandidates(parsed);
+  const exactCounty=countyCandidates(parsed, (geoData&&geoData.address)||{});
+  // Prefer exact city match, then the generic county entry, then any county-specific variants.
+  const matches=[];
+  exactCity.forEach(x=>matches.push({...x, matchType:'City match'}));
+  const detectedCountyCore=String((geoData&&geoData.address||{}).county||'').replace(/\s+county$/i,'').trim()||parsed.city||'';
+  const genericCounty=exactCounty.filter(x=>normalizeName(x.name)===normalizeName(detectedCountyCore+' - County'));
+  const restCounty=exactCounty.filter(x=>!genericCounty.includes(x));
+  genericCounty.forEach(x=>matches.push({...x, matchType:'County match'}));
+  restCounty.forEach(x=>matches.push({...x, matchType:'Related county resource'}));
+  detectedMatches=matches;
+  return matches;
+}
+function usefulLinksHtml(resource){
+  const links=Array.isArray(resource?.usefulLinks)?resource.usefulLinks:[];
+  const safe=links.map(l=>({label:String(l?.label||'').trim(),url:safeReferenceUrl(l?.url)})).filter(l=>l.label&&l.url);
+  if(!safe.length) return '';
+  return `<details class="useful-links"><summary>Useful links <span class="small">(${safe.length})</span></summary><div class="useful-list">${safe.map(l=>{
+    const target=/^https?:/i.test(l.url)?' target="_blank" rel="noopener noreferrer"':'';
+    return `<a class="useful-link-inline" href="${esc(l.url)}"${target}>${esc(l.label)}</a>`;
+  }).join('')}</div></details>`;
+}
+function safeReferenceUrl(url){
+  const u=String(url||'').trim();
+  return /^(?:https?|mailto):/i.test(u)?u:'';
+}
+function renderJurisdictionResources(){
+  const box=document.getElementById('jurisdictionResources');
+  if(!box) return;
+  const matches=detectJurisdictionResources();
+  populateJurisdictionSelect(matches);
+  const selected=selectedJurisdictionResource();
+
+  const selectedHtml=selected ? `
+    <div class="resource-card" style="margin-bottom:10px">
+      <div class="resource-title">Selected permit jurisdiction</div>
+      <div class="jur-row" style="border-top:0">
+        <div><b>${esc(selected.name)}</b><div class="small">Confirmed by scoper selection</div></div>
+        <div class="jur-links">
+          ${selected.gis?`<a class="link-btn-inline" href="${esc(safeReferenceUrl(selected.gis))}" target="_blank" rel="noopener noreferrer">GIS Map</a>`:'<span class="missing-inline">GIS not available</span>'}
+          ${selected.portal?`<a class="link-btn-inline" href="${esc(safeReferenceUrl(selected.portal))}" target="_blank" rel="noopener noreferrer">Submission Portal</a>`:'<span class="missing-inline">Portal not available</span>'}
+        </div>
+      </div>
+      ${usefulLinksHtml(selected)}
+      <div class="resource-source">Reference: ATCO Municipality Links v1.1.0 (beta)</div>
+    </div>` : '';
+
+  const otherMatches=matches.filter(m=>!selected || m.name!==selected.name);
+  const rows=otherMatches.map(m=>{
+    const gis=m.gis?`<a class="link-btn-inline" href="${esc(safeReferenceUrl(m.gis))}" target="_blank" rel="noopener noreferrer">GIS Map</a>`:'<span class="missing-inline">GIS not available</span>';
+    const portal=m.portal?`<a class="link-btn-inline" href="${esc(safeReferenceUrl(m.portal))}" target="_blank" rel="noopener noreferrer">Submission Portal</a>`:'<span class="missing-inline">Portal not available</span>';
+    return `<div class="jur-row"><div><b>${esc(m.name)}</b><div class="small">${esc(m.matchType)}</div>${usefulLinksHtml(m)}</div><div class="jur-links">${gis}${portal}</div></div>`;
+  }).join('');
+
+  if(!matches.length){
+    box.innerHTML=selectedHtml || '<div class="warn"><b>Jurisdiction resources:</b> No matching municipality/county resource was found in the ATCO jurisdiction link reference. Select a confirmed permit jurisdiction above to load its GIS/portal resources.</div>';
+    updateJurisdictionButtons();
+    return;
+  }
+  box.innerHTML=`${selectedHtml}<div class="resource-card"><div class="resource-title">Potential jurisdiction resources</div><div class="small" style="margin-bottom:8px">These links come from the ATCO Municipality Links reference. They are research aids; confirm the actual permitting jurisdiction and ROW.</div>${rows||'<div class="small">No other detected jurisdiction matches.</div>'}</div>`;
+  updateJurisdictionButtons();
+}
+function updateJurisdictionButtons(){
+  const selected=selectedJurisdictionResource();
+  const fallbackGIS=detectedMatches.find(x=>x.gis)?.gis||'';
+  const fallbackPortal=detectedMatches.find(x=>x.portal)?.portal||'';
+  const gis=selected?.gis||fallbackGIS;
+  const portal=selected?.portal||fallbackPortal;
+  const g1=document.getElementById('topGISBtn'), p1=document.getElementById('topPortalBtn'), g2=document.getElementById('detailGISBtn');
+  if(g1) g1.textContent=selected?.gis?'Open selected GIS':(gis?'Open detected GIS':'Open GIS research');
+  if(p1) p1.textContent=selected?.portal?'Open selected permit portal':(portal?'Open detected permit portal':'Open permit portal');
+  if(g2) g2.textContent=selected?.gis?'Open selected GIS':(gis?'Open detected GIS':'Open GIS research');
+}
+function openDetectedGIS(){
+  const selected=selectedJurisdictionResource();
+  if(selected?.gis){openExternal(selected.gis);return}
+  const m=detectedMatches.find(x=>x.gis);
+  if(m){openExternal(m.gis);return}
+  openGIS();
+}
+function openDetectedPortal(){
+  const selected=selectedJurisdictionResource();
+  if(selected?.portal){openExternal(selected.portal);return}
+  const m=detectedMatches.find(x=>x.portal);
+  if(m){openExternal(m.portal);return}
+  setStatus('No submission portal was available for the selected or detected jurisdiction in the ATCO reference.');
+}
+function openGIS(){
+  const q=normalizedAddress();
+  const selected=selectedJurisdictionResource();
+  const matches=detectJurisdictionResources();
+  const m=selected?.gis ? selected : matches.find(x=>x.gis);
+  if(m){openExternal(m.gis);return}
+  openExternal('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q));
+}
+function openArcGISImagery(){
+  if(Number.isFinite(lat)&&Number.isFinite(lon)){
+    openExternal('https://www.arcgis.com/home/webmap/viewer.html?center='+encodeURIComponent(lon)+','+encodeURIComponent(lat)+'&level=17&basemap=World_Imagery');
+    return;
+  }
+  openExternal('https://www.arcgis.com/home/webmap/viewer.html?basemap=World_Imagery');
+}
+function randyUrl(){
+  let url='https://www.randymajors.org/locationinfoongooglemaps';
+  if(Number.isFinite(lat)&&Number.isFinite(lon)) url+='?x='+encodeURIComponent(lon)+'&y='+encodeURIComponent(lat)+'&zoom=17';
+  return url;
+}
+function updateAddressHelpers(){
+  refreshExternalLinks();
+  const raw=normalizedAddress();
+  const a=lookupAddress();
+  const hint=document.getElementById('addressHelper');
+  if(hint) hint.textContent=a && raw!==a ? 'Lookup address: '+a : (a ? 'Search string: '+a : '');
+}
+function loadGooglePreview(){
+  const q=normalizedAddress();
+  const el=document.getElementById('googlePreview');
+  const addrEl=document.getElementById('googleAddressPreview');
+  if(!q){
+    if(addrEl) addrEl.innerHTML='Enter an address and click <b>Research project</b>.';
+    return;
+  }
+  if(addrEl) addrEl.textContent=q;
+}
+
+async function tryArcGIS(q){
+  const url='https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&outFields=*&singleLine='+encodeURIComponent(q);
+  const r=await fetch(url,{mode:'cors'});
+  if(!r.ok) return null;
+  const d=await r.json();
+  const c=d?.candidates?.[0];
+  if(!c?.location) return null;
+  const cLat=Number(c.location.y), cLon=Number(c.location.x);
+  if(!Number.isFinite(cLat)||!Number.isFinite(cLon)) return null;
+  return {lat:cLat,lon:cLon,display:c.address||q, address:{
+    city:c.attributes?.City||c.attributes?.Subregion||'',
+    county:c.attributes?.District||c.attributes?.Subregion||'',
+    state:c.attributes?.Region||'',
+    postcode:c.attributes?.Postal||''
+  }, source:'ArcGIS'};
+}
+async function tryNominatim(q){
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&q='+encodeURIComponent(q);
+  const r=await fetch(url,{headers:{'Accept-Language':'en'}});
+  if(!r.ok)return null;
+  const d=await r.json();
+  if(!d.length)return null;
+  const c=d[0], cLat=Number(c.lat), cLon=Number(c.lon);
+  if(!Number.isFinite(cLat)||!Number.isFinite(cLon))return null;
+  return {lat:cLat,lon:cLon,display:c.display_name||q,address:c.address||{},source:'OpenStreetMap'};
+}
+async function research(){
+  const addr=lookupAddress();
+  const project=document.getElementById('project').value.trim();
+  if(!addr){setStatus('Enter a project address or location.');return}
+  updateAddressHelpers();
+  document.getElementById('results').style.display='block';
+  lat=null; lon=null; displayAddress=''; geoData=null; geoSource='';
+  loadGooglePreview();
+  refreshExternalLinks();
+  const parsedStart=parseAddress(addr);
+  renderExchangeLookup(parsedStart);
+  renderInfo(); renderJurisdictionResources(); renderText();
+  setStatus('Google Maps lookup ready. Looking for coordinates in the background…');
+
+  // Always give the user the Google/Randy/OSM workflow immediately.
+  const variants=addressVariants();
+  for(const q of variants){
+    try{const result=await tryArcGIS(q); if(result){applyGeo(result);return}}catch(e){}
+  }
+  for(const q of variants){
+    try{const result=await tryNominatim(q); if(result){applyGeo(result);return}}catch(e){}
+  }
+  const parsed=parseAddress(lookupAddr);
+  renderInfo(parsed); renderJurisdictionResources(); renderText();
+  researchCompleted=true; updateReadiness();
+  setStatus('Google Maps lookup is ready, but no background coordinate match was returned. The address can still be opened in Google Maps / RandyMajors.');
+}
+function applyGeo(result){
+  researchCompleted=true;
+  lat=result.lat;lon=result.lon;displayAddress=result.display;geoData={address:result.address||{}};geoSource=result.source;
+  const parsed=parseAddress(normalizedAddress());
+  renderExchangeLookup(parsed);
+  renderMap();renderInfo();renderJurisdictionResources();renderText();refreshExternalLinks();
+  updateReadiness();
+  setStatus('Location matched by '+geoSource+'. Verify the pin and actual ROW/jurisdiction before using it for permitting.');
+}
+function getResolvedStateCode(){
+  const parsed=parseAddress(normalizedAddress());
+  const raw=(geoData&&geoData.address&&(geoData.address.state||geoData.address.Region))||parsed.state||'';
+  return normalizeStateCode(raw);
+}
+function toggleMapPanel(bodyId, btn){
+  const body=document.getElementById(bodyId);
+  if(!body) return;
+  const collapsed=body.classList.toggle('collapsed');
+  if(btn) btn.textContent=collapsed?'Expand map':'Collapse map';
+  if(!collapsed){
+    setTimeout(()=>{
+      if(bodyId==='roadMapBody' && map) map.invalidateSize();
+      if(bodyId==='imageryMapBody' && imageryMap) imageryMap.invalidateSize();
+      if(bodyId==='wsdotMapBody' && wsdotMap) wsdotMap.invalidateSize();
+    },120);
+  }
+}
+function openWSDOTFunctionalClass(){
+  openExternal('https://wsdot.wa.gov/data/tools/geoportal/?config=FunctionalClass');
+}
+function renderMap(){
+  const roadEl=document.getElementById('map');
+  const imageryEl=document.getElementById('imageryMap');
+  const wsdotEl=document.getElementById('wsdotMap');
+  const imageryStatus=document.getElementById('imageryMapStatus');
+  const wsdotStatus=document.getElementById('wsdotMapStatus');
+  const roadStatus=document.getElementById('roadMapStatus');
+
+  if(map){map.remove();map=null}
+  if(imageryMap){imageryMap.remove();imageryMap=null}
+  if(wsdotMap){wsdotMap.remove();wsdotMap=null}
+  marker=null; imageryMarker=null; wsdotMarker=null; wsdotLayer=null;
+
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+    roadEl.style.display='none';
+    if(roadStatus) roadStatus.textContent='Waiting for coordinates…';
+    if(imageryStatus) imageryStatus.textContent='Waiting for coordinates…';
+    if(wsdotStatus) wsdotStatus.textContent='Waiting for Washington location…';
+    return;
+  }
+
+  const project=document.getElementById('project').value.trim()||'Project location';
+  const popupHtml=project+'<br>'+esc(displayAddress||normalizedAddress());
+
+  // Map 1: road-focused OpenStreetMap view.
+  try{
+    roadEl.style.display='block';
+    roadEl.innerHTML='';
+    map=L.map('map').setView([lat,lon],16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'© OpenStreetMap contributors'
+    }).addTo(map);
+    marker=L.marker([lat,lon]).addTo(map).bindPopup(popupHtml).openPopup();
+    if(roadStatus) roadStatus.textContent='Live road map';
+  }catch(e){
+    roadEl.innerHTML='<div class="mapFallback">Road map unavailable — Google Maps / OpenStreetMap links remain available.</div>';
+    if(roadStatus) roadStatus.textContent='Road map unavailable';
+  }
+
+  // Map 2: ArcGIS World Imagery aerial/satellite view.
+  try{
+    imageryMap=L.map('imageryMap',{zoomControl:true}).setView([lat,lon],16);
+    const imageryLayer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+      maxZoom:19,
+      attribution:'Esri World Imagery'
+    });
+    imageryLayer.on('tileerror',()=>{
+      if(imageryStatus) imageryStatus.textContent='Imagery tile unavailable — use Google Maps satellite.';
+    });
+    imageryLayer.addTo(imageryMap);
+    imageryMarker=L.marker([lat,lon]).addTo(imageryMap).bindPopup(popupHtml);
+    if(imageryStatus) imageryStatus.textContent='Live aerial / satellite imagery';
+    setTimeout(()=>{if(imageryMap) imageryMap.invalidateSize();},120);
+  }catch(e){
+    if(imageryStatus) imageryStatus.textContent='Imagery map unavailable — road map remains available.';
+  }
+
+  // WSDOT Functional Classification: keep the local app stable by opening the official WSDOT map in a separate tab.
+  const stateCode=getResolvedStateCode();
+  if(stateCode==='WA'){
+    if(wsdotStatus) wsdotStatus.textContent='Official WSDOT map available';
+  }else{
+    if(wsdotStatus) wsdotStatus.textContent='Washington reference only';
+    if(wsdotEl) wsdotEl.innerHTML='<div class="mapFallback">WSDOT Functional Classification is a Washington State reference and is shown only for Washington locations.</div>';
+  }
+}
+function renderInfo(parsedOverride){
+  const parsed=parsedOverride||parseAddress(normalizedAddress());
+  const a=(geoData&&geoData.address)||{};
+  const city=a.city||a.town||a.village||a.hamlet||a.municipality||parsed.city||'';
+  const county=a.county||a.District||a.Subregion||a.subregion||'';
+  const state=a.state||a.Region||parsed.state||'';
+  const zip=a.postcode||a.postal||parsed.zip||'';
+  const hasCoords=Number.isFinite(lat)&&Number.isFinite(lon);
+  const coordDisplay=document.getElementById('coordDisplay');
+  if(coordDisplay) coordDisplay.value=hasCoords?(lat.toFixed(6)+', '+lon.toFixed(6)):'';
+  document.getElementById('locationInfo').innerHTML=
+    `<div>Project</div><div>${esc(document.getElementById('project').value)}</div>
+     <div>Address entered</div><div>${esc(normalizedAddress())}</div>
+     <div>Google Maps search</div><div><a href="${esc(googleSearchUrl())}" target="_blank" rel="noopener">Open address in Google Maps</a></div>
+     <div>Resolved address</div><div>${esc(displayAddress||'Using entered address')}</div>
+     <div>Latitude</div><div>${hasCoords?lat.toFixed(6):'Not available — open Google Maps/RandyMajors'}</div>
+     <div>Longitude</div><div>${hasCoords?lon.toFixed(6):'Not available — open Google Maps/RandyMajors'}</div>
+     <div>City / locality</div><div>${esc(city||'Not identified')}</div>
+     <div>County</div><div>${esc(county||'Needs verification')}</div>
+     <div>State</div><div>${esc(state||'Not identified')}</div>
+     <div>ZIP</div><div>${esc(zip||'Not identified')}</div>
+     <div>Coordinate source</div><div>${esc(geoSource||'Google Maps / manual research')}</div>`;
+  document.getElementById('jurisdictionBox').innerHTML=
+    `<div class="warn"><b>Location research:</b> ${esc(city||state||'Address entered')}<br>
+    <b>Workflow:</b> Google Maps → RandyMajors → OpenStreetMap → WSDOT Functional Classification (WA).<br>
+    <b>Important:</b> map/geocoder results are research aids, not final permitting-jurisdiction determinations. Confirm the actual ROW/jurisdiction and check for multiple-jurisdiction impacts.</div>`;
+}
+function selectedJurisdictionText(){
+  return document.getElementById('selectedJurisdiction')?.value.trim()||'';
+}
+function getEmailSignature(){
+  const choice=document.getElementById('emailSignature')?.value||'eli';
+  if(choice==='johnny'){
+    return `Johnny Lang\nProject Manager - TCP Permits\n714-696-2034\nATCO Communications Services, LLC`;
+  }
+  return `Eli Hersman\nTCP Permit Specialist\n512-627-6114\nATCO Communications Services, LLC`;
+}
+function loadEmailSignature(){
+  const saved=localStorage.getItem('atcoEmailSignature')||'eli';
+  const el=document.getElementById('emailSignature');
+  if(el && [...el.options].some(o=>o.value===saved)) el.value=saved;
+}
+function saveEmailSignature(){
+  const el=document.getElementById('emailSignature');
+  if(el) localStorage.setItem('atcoEmailSignature',el.value);
+}
+function loadAssignedCoordinator(){
+  const saved=localStorage.getItem('atcoAssignedCoordinator')||'';
+  const el=document.getElementById('assignedCoordinator');
+  if(el && saved && [...el.options].some(o=>o.value===saved)) el.value=saved;
+}
+function saveAssignedCoordinator(){
+  const el=document.getElementById('assignedCoordinator');
+  if(el) localStorage.setItem('atcoAssignedCoordinator',el.value);
+}
+function copyField(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const value=(el.value||'').trim();
+  if(!value){setStatus('Nothing to copy for this field.');return}
+  navigator.clipboard.writeText(value).then(()=>setStatus('Copied to clipboard.'));
+}
+function updateReadiness(){
+  const card=document.getElementById('readinessCard');
+  const status=document.getElementById('readinessStatus');
+  const list=document.getElementById('readinessList');
+  const missing=document.getElementById('missingInfo');
+  if(!card||!status||!list||!missing) return;
+  const project=(document.getElementById('project')?.value||'').trim();
+  const address=(document.getElementById('address')?.value||'').trim();
+  const exchange=(document.getElementById('exchange')?.value||'').trim();
+  const jurisdiction=(document.getElementById('selectedJurisdiction')?.value||'').trim();
+  const assigned=(document.getElementById('assignedCoordinator')?.value||'').trim();
+  const scope=(document.getElementById('scope')?.value||'').trim();
+  const items=[
+    ['Project number', !!project],
+    ['Address', !!address],
+    ['Location research', !!researchCompleted],
+    ['Exchange', !!exchange],
+    ['Permit jurisdiction confirmed', !!jurisdiction],
+    ['Coordinator assigned', !!assigned],
+    ['Scope of work', !!scope]
+  ];
+  list.innerHTML=items.map(([label,ok])=>`<div class="readiness-item ${ok?'ok':'warn'}"><div class="rlabel">${label}</div><div class="rvalue">${ok?'✓ Complete':'⚠ Needs attention'}</div></div>`).join('');
+  const missingItems=items.filter(x=>!x[1]).map(x=>x[0]);
+  if(researchCompleted){
+    status.textContent=missingItems.length?'Research complete — review items below':'Research complete — ready for final review';
+    status.className='readiness-status '+(missingItems.length?'needs':'ready');
+  }else{
+    status.textContent='Research not completed';
+    status.className='readiness-status needs';
+  }
+  missing.innerHTML=missingItems.length?`<b>Items needing attention:</b> ${missingItems.join(' • ')}`:'All tracked project fields are populated. Continue with final human verification before handoff.';
+}
+function renderText(){
+  const p=document.getElementById('project').value.trim(), addr=normalizedAddress(), lookupAddr=lookupAddress();
+  const altP=(document.getElementById('altProjectNumber')?.value||'').trim();
+  const rec=document.getElementById('received').value||new Date().toISOString().slice(0,10);
+  const client=(document.getElementById('client')?.value||'Ziply').trim()||'Ziply';
+  const scope=(document.getElementById('scope')?.value||'').trim();
+  const ex=document.getElementById('exchange').value.trim();
+  const clli=document.getElementById('clli').value.trim();
+  const eng=document.getElementById('engineer').value.trim();
+  const mgr=document.getElementById('exchangeManager').value.trim();
+  const co=document.getElementById('coordinator').value.trim();
+  const assigned=document.getElementById('assignedCoordinator')?.value.trim()||'';
+  const scoperNotes=(document.getElementById('scoperNotes')?.value||'').trim();
+  const includeNotes=document.getElementById('includeScoperNotes')?.checked||false;
+  const chatterDeadline=document.getElementById('chatterDeadline')?.value||'';
+  const jurisdiction=selectedJurisdictionText();
+  const emailSignature=getEmailSignature();
+  const parsed=parseAddress(addr);
+  const state=normalizeStateCode((geoData&&geoData.address&&geoData.address.state)||parsed.state);
+  const city=(geoData&&geoData.address&&(geoData.address.city||geoData.address.town||geoData.address.village))||parsed.city||'';
+  const zip=(geoData&&geoData.address&&(geoData.address.postcode||geoData.address.Postal))||parsed.zip||'';
+  const latText=Number.isFinite(lat)?lat.toFixed(6):'Not available';
+  const lonText=Number.isFinite(lon)?lon.toFixed(6):'Not available';
+  const jurisdictionList=detectedMatches.map(x=>x.name).join(' / ');
+
+  document.getElementById('anvil').value=
+`Project Address/Description: ${addr}
+Date Received: ${rec}
+Project Number: ${p}
+Alternate Project Number: ${altP}
+Customer Contact:
+ATCO Contact:
+Customer: ${client}
+Exchange: ${ex}
+CLLI Code: ${clli}
+Work Type: ${scope}
+Jurisdiction: ${jurisdiction}
+Assigned To: ${assigned}
+Submitted By:
+
+Location:
+City: ${city}
+State: ${state}
+ZIP: ${zip}
+Latitude: ${latText}
+Longitude: ${lonText}
+Resolved Address: ${displayAddress||'Using entered address'}
+
+Engineer: ${eng}
+OSP Engineering Manager: ${mgr}
+Engineering Coordinator: ${co}
+Assigned Permit Coordinator: ${assigned}
+
+Potential Jurisdictions / Resources:
+${jurisdictionList||'None identified'}
+
+Notes:
+Project research completed. Verify jurisdiction, road classification, permit/TCP requirements, applicable submittal musts, and any multiple-jurisdiction impacts before assignment.
+${scoperNotes?`
+Scoper Notes:
+${scoperNotes}`:''}`;
+
+  document.getElementById('email').textContent=
+`Subject: Project ${p||'[Project #]'} – Permit Assignment
+
+Hello Kim,
+
+Received and assigned to ${assigned||'a coordinator'} to submit.
+
+Project #${p||'[Project #]'}
+Address: ${addr||'[Address]'}
+
+Regards,
+
+${emailSignature}`;
+
+  document.getElementById('handoffEmail').textContent=
+`Subject: Project ${p||'[Project #]'} – Permit Assignment
+
+Hello ${assigned||'[Coordinator Name]'},
+
+You have been assigned the following project:
+
+PROJECT #: ${p||'[Project #]'}
+JURISDICTION: ${jurisdiction||'[Confirm permit jurisdiction]'}
+STATE work will be: ${state||'[State]'}
+CLIENT: ${client||'[Client]'}
+SCOPE OF WORK: ${scope||'[Scope of Work]'}
+ADDRESS: ${addr||'[Address]'}${includeNotes && scoperNotes ? `
+
+SCOPER NOTES:
+${scoperNotes}` : ''}
+
+Regards,
+
+${emailSignature}`;
+
+  const chatterDate=formatDateForChatter(chatterDeadline);
+  document.getElementById('chatterMessage').textContent=
+`Project #: ${p||'[Project #]'}
+Address: ${addr||'[Address]'}
+Assigned to Permit Team to apply. Permit will be submitted no later than ${chatterDate||'[deadline]'}.`;
+  updateReadiness();
+}
+
+function crc32(bytes){
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++){
+    crc ^= bytes[i];
+    for(let j=0;j<8;j++){
+      const mask=-(crc&1);
+      crc=(crc>>>1) ^ (0xEDB88320 & mask);
+    }
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function makeStoreZip(filename, textContent){
+  const enc=new TextEncoder();
+  const name=enc.encode(filename);
+  const data=enc.encode(textContent);
+  const crc=crc32(data);
+  const local=new Uint8Array(30+name.length+data.length);
+  let o=0;
+  local.set([0x50,0x4b,0x03,0x04],o);o+=4;
+  local.set(u16(20),o);o+=2;              // version needed
+  local.set(u16(0),o);o+=2;               // flags
+  local.set(u16(0),o);o+=2;               // store method
+  local.set(u16(0),o);o+=2;               // time
+  local.set(u16(0),o);o+=2;               // date
+  local.set(u32(crc),o);o+=4;
+  local.set(u32(data.length),o);o+=4;
+  local.set(u32(data.length),o);o+=4;
+  local.set(u16(name.length),o);o+=2;
+  local.set(u16(0),o);o+=2;               // extra length
+  local.set(name,o);o+=name.length;
+  local.set(data,o);
+
+  const central=new Uint8Array(46+name.length);
+  o=0;
+  central.set([0x50,0x4b,0x01,0x02],o);o+=4;
+  central.set(u16(20),o);o+=2;             // made by version
+  central.set(u16(20),o);o+=2;             // needed version
+  central.set(u16(0),o);o+=2;               // flags
+  central.set(u16(0),o);o+=2;               // store
+  central.set(u16(0),o);o+=2;
+  central.set(u16(0),o);o+=2;
+  central.set(u32(crc),o);o+=4;
+  central.set(u32(data.length),o);o+=4;
+  central.set(u32(data.length),o);o+=4;
+  central.set(u16(name.length),o);o+=2;
+  central.set(u16(0),o);o+=2;
+  central.set(u16(0),o);o+=2;
+  central.set(u16(0),o);o+=2;
+  central.set(u16(0),o);o+=2;
+  central.set(u32(0),o);o+=4;
+  central.set(u32(0),o);o+=4;
+  central.set(name,o);
+
+  const end=new Uint8Array(22);
+  o=0;
+  end.set([0x50,0x4b,0x05,0x06],o);o+=4;
+  end.set(u16(0),o);o+=2;
+  end.set(u16(0),o);o+=2;
+  end.set(u16(1),o);o+=2;
+  end.set(u16(1),o);o+=2;
+  end.set(u32(central.length),o);o+=4;
+  end.set(u32(local.length),o);o+=4;
+  end.set(u16(0),o);
+
+  return new Blob([local,central,end],{type:'application/zip'});
+}
+function uint8ToBase64(bytes){
+  let binary='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  }
+  return btoa(binary);
+}
+function downloadKMZ(){
+  const p=document.getElementById('project').value.trim()||'Project';
+  const addr=normalizedAddress();
+  const status=document.getElementById('fileActionStatus');
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+    if(status) status.textContent='KMZ needs coordinates. Run Research Project first so the app can resolve the project location.';
+    return;
+  }
+  const kml=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<name>${escXml(p)} Project Location</name>
+<Placemark>
+<name>${escXml(p)}</name>
+<description>${escXml(addr)}&#10;Lat: ${lat}&#10;Lon: ${lon}</description>
+<Point><coordinates>${lon},${lat},0</coordinates></Point>
+</Placemark>
+</Document></kml>`;
+  try{
+    const kmzBlob=makeStoreZip('doc.kml',kml);
+    const filename=(p||'Project').replace(/[^A-Za-z0-9._-]+/g,'_')+'_Project_Location.kmz';
+    const blobUrl=URL.createObjectURL(kmzBlob);
+    if(status){
+      status.innerHTML='';
+      const a=document.createElement('a');
+      a.href=blobUrl;
+      a.download=filename;
+      a.className='buttonLink';
+      a.textContent='KMZ file: '+filename+' (right-click → Open link in new tab)';
+      a.setAttribute('aria-label','Download KMZ file '+filename);
+      a.target='_blank';
+      a.rel='noopener noreferrer';
+      status.appendChild(a);
+      const note=document.createElement('div');
+      note.className='small';
+      note.style.marginTop='6px';
+      note.textContent='Right-click this link and select “Open link in new tab” to open/download the .kmz file.';
+      status.appendChild(note);
+      setTimeout(()=>URL.revokeObjectURL(blobUrl),10*60*1000);
+    } else {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }catch(err){
+    console.error(err);
+    if(status) status.textContent='KMZ could not be generated in this browser.';
+  }
+}
+function copyCoordinates(){
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+    setStatus('Coordinates are not available yet. Run Research Project first.');
+    return;
+  }
+  const text=lat.toFixed(6)+', '+lon.toFixed(6);
+  const input=document.getElementById('coordDisplay');
+  if(input){
+    input.value=text;
+    input.focus();
+    input.select();
+    input.setSelectionRange(0,input.value.length);
+  }
+  const fas=document.getElementById('fileActionStatus');
+  if(fas) fas.textContent='Coordinates selected. Press Ctrl+C to copy.';
+}
+async function saveMapImage(){
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){setStatus('Map image requires a coordinate match first.');return}
+  setStatus('Map image saving is currently disabled.');
+  return;
+  if(!window.html2canvas){alert('Map image library is not available.');return}
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){setStatus('Map image requires a coordinate match first.');return}
+  const canvas=await html2canvas(document.getElementById('map'),{useCORS:true,backgroundColor:'#fff'});
+  canvas.toBlob(b=>downloadBlob(b,(document.getElementById('project').value||'Project')+'_Map.png'));
+}
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name; a.textContent='Download .KMZ file';
+  a.className='buttonLink'; a.target='_self';
+  a.style.display='inline-block';
+  let clicked=false;
+  try{
+    document.body.appendChild(a);
+    a.click();
+    clicked=true;
+  }catch(e){}
+  const fas=document.getElementById('fileActionStatus');
+  if(fas){
+    fas.innerHTML='';
+    fas.appendChild(a.cloneNode(true));
+    const note=document.createElement('span');
+    note.textContent=clicked?'  If the download did not start, click the link above.':'  Click the link above to download.';
+    fas.appendChild(note);
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(()=>setStatus('Copied to clipboard.'))}
+function copyEmail(){navigator.clipboard.writeText(document.getElementById('email').textContent).then(()=>setStatus('Email copied to clipboard.'))}
+function copyHandoffEmail(){navigator.clipboard.writeText(document.getElementById('handoffEmail').textContent).then(()=>setStatus('Coordinator handoff email copied to clipboard.'))}
+function loadReferenceCSV(){document.getElementById('csvInput').click()}
+function readCSV(inp){
+  const f=inp.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>{
+    const rows=rd.result.trim().split(/\r?\n/).map(x=>x.split(',').map(v=>v.trim().replace(/^"|"$/g,'')));
+    if(rows.length<2){setStatus('CSV has no data rows.');return}
+    const h=rows[0].map(x=>x.toLowerCase());
+    const ex=rows[1][h.findIndex(x=>x.includes('exchange'))]||'';
+    const clli=rows[1][h.findIndex(x=>x.includes('clli'))]||'';
+    const eng=rows[1][h.findIndex(x=>x.includes('exchange') && x.includes('engineer'))]||rows[1][h.findIndex(x=>x.includes('engineer') && !x.includes('coordinator'))]||'';
+    const mgr=rows[1][h.findIndex(x=>x.includes('manager'))]||'';
+    const co=rows[1][h.findIndex(x=>x.includes('coordinator'))]||'';
+    if(ex)document.getElementById('exchange').value=ex;
+    if(clli)document.getElementById('clli').value=clli;
+    if(eng)document.getElementById('engineer').value=eng;
+    if(mgr)document.getElementById('exchangeManager').value=mgr;
+    if(co)document.getElementById('coordinator').value=co;
+    renderText();setStatus('Reference data loaded from CSV.');
+  };rd.readAsText(f)
+}
+function formatDateForChatter(value){
+  const d=value?new Date(value+'T00:00:00'):new Date();
+  return isNaN(d.getTime())?'':d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+}
+function setDefaultChatterDeadline(){
+  const el=document.getElementById('chatterDeadline');
+  if(!el||el.value) return;
+  const d=new Date();
+  d.setDate(d.getDate()+10);
+  el.value=d.toISOString().slice(0,10);
+}
+function copyChatter(){
+  navigator.clipboard.writeText(document.getElementById('chatterMessage').textContent).then(()=>setStatus('Chatter message copied to clipboard.'));
+}
+function setTransferSelection(selectAll){
+  document.querySelectorAll('[data-transfer-field]').forEach(cb=>{
+    if(!cb.disabled) cb.checked=selectAll;
+  });
+}
+function getTransferPayload(){
+  const values={
+    projectNumber: document.getElementById('project')?.value.trim()||'',
+    altProjectNumber: document.getElementById('altProjectNumber')?.value.trim()||'',
+    projectAddress: normalizedAddress(),
+    dateReceived: document.getElementById('received')?.value||'',
+    customer: (document.getElementById('client')?.value||'').trim(),
+    scope: (document.getElementById('scope')?.value||'').trim(),
+    exchange: (document.getElementById('exchange')?.value||'').trim(),
+    clli: (document.getElementById('clli')?.value||'').trim(),
+    engineer: (document.getElementById('engineer')?.value||'').trim(),
+    exchangeManager: (document.getElementById('exchangeManager')?.value||'').trim(),
+    coordinator: (document.getElementById('coordinator')?.value||'').trim(),
+    selectedJurisdiction: selectedJurisdictionText(),
+    assignedCoordinator: (document.getElementById('assignedCoordinator')?.value||'').trim(),
+    scoperNotes: (document.getElementById('scoperNotes')?.value||'').trim()
+  };
+  const fields={};
+  document.querySelectorAll('[data-transfer-field]:checked').forEach(cb=>{
+    if(!cb.disabled && values[cb.dataset.transferField]!==undefined){
+      fields[cb.dataset.transferField]=values[cb.dataset.transferField];
+    }
+  });
+  return {
+    schema:'ATCO-Anvil-Transfer-v1',
+    createdAt:new Date().toISOString(),
+    projectNumber:values.projectNumber,
+    fields
+  };
+}
+function prepareAnvilTransfer(){
+  const payload=getTransferPayload();
+  const status=document.getElementById('transferStatus');
+  const box=document.getElementById('transferPayload');
+  const out=document.getElementById('transferPayloadText');
+  const count=Object.keys(payload.fields).length;
+  if(!count){
+    if(status){status.className='transferStatus warn';status.textContent='Select at least one field to transfer.';}
+    if(box) box.classList.remove('show');
+    return;
+  }
+  const detail=JSON.stringify(payload,null,2);
+  if(out) out.textContent=detail;
+  if(box) box.classList.add('show');
+  if(status){
+    status.className='transferStatus ok';
+    status.textContent=`Transfer package prepared: ${count} field${count===1?'':'s'} selected. Install/use the browser transfer tool to send this package to Anvil.`;
+  }
+  window.postMessage({source:'ATCO_SCOPING_ASSISTANT',type:'ATCO_ANVIL_TRANSFER_READY',payload},'*');
+  try{ navigator.clipboard.writeText(detail); }catch(e){}
+}
+function clearAll(){
+  if(!confirm('Start a new project and clear the current project data? Your saved coordinator and email signature preferences will remain.')) return;
+  location.reload();
+}
+setDefaultChatterDeadline();
+loadEmailSignature();
+loadAssignedCoordinator();
+updateAddressHelpers();
+updateReadiness();
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escXml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
+document.getElementById('received').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
