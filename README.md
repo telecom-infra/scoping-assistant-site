@@ -16,6 +16,8 @@ The Scoping Assistant is designed to make project research easier by bringing co
 
 It can be used **independently** as a browser-based scoping tool.
 
+> **Quick link:** [telecom-infra.github.io/scoping-assistant-site](https://telecom-infra.github.io/scoping-assistant-site/)
+
 ---
 
 ## 🔎 What It Does
@@ -92,6 +94,8 @@ The extension **does not create or submit the Anvil project**.
 
 The final review and project creation remain a user action.
 
+<img src="docs/scoping-assistant-browser-ext-screenshot.png" alt="ATCO Anvil Transfer browser extension" width="900">
+
 ---
 
 ## 🌐 Browser Support
@@ -114,7 +118,7 @@ The site provides the current extension package and installation information.
 
 ## 🖼️ Interface Preview
 
-*A screenshot of the current Scoping Assistant interface will be placed here.*
+<img src="docs/scoping-assistant-screenshot.png" alt="ATCO Scoping Assistant interface" width="900">
 
 ---
 
